@@ -2,7 +2,19 @@
 
 Find a recovery or ordering failure, observe the effect, reduce the failing sequence, and export a regression test.
 
-**v0.2.0 is an engineering prototype, not a competition-ready release.** The C fixture and an independently authored, unmodified nginx HTTP/file server have run on Linux. The native QNX source now has a separate effect observer and a shared reduction entry point, but has not compiled or executed on QNX. No physical actuator, production vulnerability or safety certification is claimed.
+**v0.3.0 is an engineering prototype, not a competition-ready release.** The C fixture and an independently authored, unmodified nginx HTTP/file server have run on Linux. The native QNX source now has a separate effect observer and a shared reduction entry point, but has not compiled or executed on QNX. No physical actuator, production vulnerability or safety certification is claimed.
+
+## New in v0.3.0
+
+This revision hardens the workbench itself and completes the source-level native acceptance workflow. It does not claim the blocked native milestone has run.
+
+- Partial readiness messages now have a bounded read. A readable pipe is not treated as a complete line.
+- Inconclusive or unexecuted deletion tests cannot prove a reduced witness is minimal.
+- The native checker distinguishes an unblock observed before commit from one observed after commit.
+- The documented QNX build helper, omitted from the prior ZIP despite being in its Git history, is restored. The archive builder accounts for all selected source and tracked files and preserves executable bits.
+- A build/source/binary identity record, native ABI probe, strict paired-campaign gate, reduction and exported JUnit regressions are connected in one native workflow. Native code is still uncompiled here.
+
+The current local evidence is in `evidence/v0.3.0`. Historical v0.1 and v0.2 campaigns are retained as historical records, not new runs. Read `docs/progress-v0.3.0.md` and `docs/native-handoff.md` for the current state.
 
 ## Run the local checks
 
@@ -94,23 +106,31 @@ The shared reducer accepts an adapter runner and a validator. It repeats candida
 
 ## Native QNX gate
 
-An appropriately licensed SDK and a real QNX target remain required. No proprietary SDK headers, binaries, target images or licence material are included.
+An appropriately licensed SDK and a booted QNX target remain required. No proprietary SDK headers, runtime images or licence material are included. This workflow requires Python 3.10 or newer on both the development host and target.
 
 ```sh
-# On a supported development host after sourcing the licensed SDK environment:
-./scripts/build-qnx.sh
+# On the development host, after sourcing an authorised QNX SDK environment:
+./scripts/build-qnx.sh --out artifacts/qnx-build
 
-# On the QNX target with Python 3, this source package and compiled binaries:
-python3 -S scripts/qnx-canary.py --bin ./build-qnx --out native-results --repetitions 5
-
-# Only after a native failure actually reproduces:
-python3 -S scripts/qnx-reduce.py examples/native/unblock.json \
-  --bin ./build-qnx --out native-reduction
+# Copy the identical source tree and your own compiled build directory to QNX.
+# On that QNX target, not on Linux:
+./scripts/verify-native.sh --bin artifacts/qnx-build/build \
+  --out artifacts/native-acceptance
 ```
 
-The server now delivers virtual effects through a dedicated pipe to a separate observer. The checker cross-checks those effects against client results, actual unblock activation and server lifecycle events. A missing observer, missing activation or unclean shutdown cannot be counted as a successful cancellation test. Fourteen offline checker/guard tests use records explicitly labelled synthetic; they do not emulate QNX APIs or establish native compatibility.
+The second command is designed to run five paired comparisons, independently recheck their evidence, reduce the failure and export/replay native regression tests. It deliberately substitutes the flawed candidate once to test whether the exported suite rejects it. This complete native success path has not executed in the supplied environment. Linux returns NOT_RUN with exit 77.
 
-See `docs/qnx-native-gate.md` for the precise platform semantics and remaining review work.
+Build logs, source hashes, binary hashes, runtime ABI metadata, independent effect records and observed unblock activation are required. Merely changing a summary to say "passed" cannot close the gate. Hashes are integrity checks, not an authenticity or safety certificate.
+
+To inspect host prerequisites without compiling:
+
+```sh
+./scripts/build-qnx.sh --check --out artifacts/qnx-prerequisites
+```
+
+A READY_TO_ATTEMPT result means only that tools and directories exist. It does not validate a licence or compile anything. Missing prerequisites produce NOT_RUN.
+
+See `docs/native-handoff.md` for exact commands and expected outcomes. The original separate `qnx-canary.py` and `qnx-reduce.py` entry points remain available.
 
 ## Evidence limits and next decision
 

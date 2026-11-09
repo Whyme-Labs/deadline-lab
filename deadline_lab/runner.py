@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 from .oracle import evaluate
 from .scenario import validate
+from .bounded_io import LineReader
 
 ROOT = Path(__file__).resolve().parents[1]
 MODES = ("reference", "omit_epoch", "omit_expiry", "omit_cancel", "omit_dedupe", "reject_all")
@@ -170,8 +171,7 @@ def run_scenario(scenario: dict[str, Any], mode: str, out: Path,
         os.close(read_fd)
         read_fd = -1
         assert plant.stdout is not None
-        ready, _, _ = select.select([plant.stdout], [], [], 2)
-        if not ready or plant.stdout.readline() != b"READY\n":
+        if LineReader(plant.stdout.fileno(), 256).read(2) != "READY":
             raise RuntimeError("plant startup failed")
         actor = Actor(binary, mode, epoch, write_fd, out / "worker.stderr")
         record("boot", epoch=epoch, pid=actor.process.pid)
@@ -218,7 +218,7 @@ def run_scenario(scenario: dict[str, Any], mode: str, out: Path,
         commands[probe_id] = {"id": probe_id, "epoch": epoch, "issued_ns": now,
                             "expires_ns": now + 10_000_000_000, "delta": 1}
         record("healthy_probe", command_id=probe_id, prepared=prepare(probe_id), response=commit(probe_id))
-    except (OSError, RuntimeError, subprocess.SubprocessError, ValueError) as exc:
+    except (OSError, EOFError, RuntimeError, subprocess.SubprocessError, ValueError) as exc:
         error = f"{type(exc).__name__}: {exc}"
         record("infrastructure_error", error=error)
     finally:

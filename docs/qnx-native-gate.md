@@ -1,3 +1,15 @@
+# Native QNX gate, v0.3.0 update
+
+Current entry points and provenance requirements are in [native-handoff.md](native-handoff.md). The full native success path remains uncompiled and unexecuted here. The historical v0.2 source design below explains the API choices; its old default `build-qnx` directory is superseded by the explicit build-output directory selected by the current helper.
+
+The offline checker now requires the observed unblock to precede any effect before evaluating the intended cancellation property. A commit preceding the unblock is INCONCLUSIVE for this specific test, not evidence of a cancellation defect. A transport timeout alone still does not establish cancellation.
+
+Native-origin bundles must include the actual build record, source manifest and ABI observation. The native gate requires five paired, rechecked runs with matching source/binary identities, positive healthy progress, and a detected omitted-cancellation control. Synthetic records cannot close it.
+
+The reducer's deletion audit is tri-state. Missing observations can preserve a reproducible failure witness while leaving minimality unknown. It no longer silently treats unknown as a non-failing neighbour.
+
+---
+
 # Native QNX gate
 
 Status on 9 November 2026, v0.2.0: native source and integration only. The build helper and target runner both exited 77 here. No QNX compile, target boot or native cancellation observation is claimed.

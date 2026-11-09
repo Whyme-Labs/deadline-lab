@@ -32,3 +32,13 @@ The prior 9 November research memo remains a separate user-provided artifact. It
   https://nginx.org/en/docs/ngx_core_module.html
 
 R1, R3 and R4 were rechecked while extending the native observer path. No new platform execution evidence follows from that documentation review. An attempted libmodbus source download could not complete in this environment; no libmodbus source or executable was used in the delivered experiment.
+
+
+## v0.3.0 documentation recheck
+
+R1, R2, R4 and R7 were reopened during this revision. Their documentation does not substitute for executing the native implementation.
+
+- R12. QNX SDP 8.0, q++, qcc. Compiler invocation and target variant selection.
+  https://www.qnx.com/developers/docs/8.0/com.qnx.doc.neutrino.utilities/topic/q/qcc.html
+
+The late-unblock checker correction is our test-contract decision. The experiment must establish the intended pre-commit condition before claiming its cancellation policy failed. It is not a claim that every QNX service must cancel every operation, or that a timeout reverses an already committed effect.

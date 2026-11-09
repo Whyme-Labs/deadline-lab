@@ -30,6 +30,7 @@ def main():
             checks.append(run(witness,mode,a.out/f'{i}-{mode}',a.bin))
     ok=all(r['verdict']==('PASS' if r.get('mode')=='reference' else 'FAIL') and
            (r.get('mode')!='ignore_unblock' or 'cancel_before_effect' in r.get('properties',[])) for r in checks)
+    ok = ok and record['deletion_1_minimal'] is True and record['final_reproduces']
     summary={'reduction':record,'checks':checks,'expected_outcomes_observed':ok,
              'qnx_executed':True}
     (a.out/'summary.json').write_text(json.dumps(summary,indent=2)+'\n')

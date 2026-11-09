@@ -20,17 +20,20 @@ def main():
     scenario = json.loads(args.scenario.read_text()) if args.scenario else DEFAULT_SCENARIO
     args.out.mkdir(parents=True, exist_ok=False)
     results = []
+    runs = []
     for i in range(args.repetitions):
         for mode in ('reference', 'ignore_unblock'):
             result = run(scenario, mode, args.out / f'{i}-{mode}', args.bin)
             results.append(result)
+            runs.append({"path": f"{i}-{mode}", "repetition": i, "policy": mode})
             if result['verdict'] == 'NOT_RUN':
-                (args.out / 'summary.json').write_text(json.dumps({'results': results, 'qnx_executed': False}, indent=2)+'\n')
+                (args.out / 'summary.json').write_text(json.dumps({'schema': 3, 'results': results, 'runs': runs, 'repetitions': args.repetitions, 'qnx_executed': False}, indent=2)+'\n')
                 print(json.dumps(result, indent=2)); return 77
     expectations = all(r['verdict'] == ('PASS' if r['mode'] == 'reference' else 'FAIL') and
                        (r['mode'] != 'ignore_unblock' or 'cancel_before_effect' in r['properties'])
                        for r in results)
-    summary = {'results': results, 'qnx_executed': True, 'expectations_met': expectations}
+    summary = {'schema': 3, 'results': results, 'runs': runs, 'repetitions': args.repetitions,
+               'qnx_executed': True, 'expectations_met': expectations}
     (args.out / 'summary.json').write_text(json.dumps(summary, indent=2)+'\n')
     print(json.dumps(summary, indent=2))
     return 0 if expectations else 1

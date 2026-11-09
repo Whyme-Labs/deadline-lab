@@ -9,17 +9,19 @@ import errno
 import json
 import os
 import platform
-import select
 import subprocess
 import sys
 from pathlib import Path
 from typing import Any
 from ..evidence import digest, seal, verify
 from ..trace import read_trace
+from ..bounded_io import LineReader
+from ..source_manifest import manifest as source_manifest
 
 ROOT = Path(__file__).resolve().parents[2]
 REQUIRED = {'scenario.json', 'clients.json', 'server.jsonl', 'effects.jsonl',
             'target.json', 'completion.json', 'server.stderr', 'observer.stderr'}
+NATIVE_PROVENANCE = {'build-record.json', 'source-manifest.json', 'abi.json'}
 DEFAULT_SCENARIO = {'schema': 2, 'adapter': 'qnx-native', 'name': 'unblock-before-effect',
     'actions': [{'op': 'call', 'work_ms': 150, 'timeout_ms': 25, 'expect_unblock': True}]}
 
@@ -52,6 +54,7 @@ def evaluate(out: Path) -> dict[str, Any]:
     effect_count = 0
     healthy = 0
     origin = 'unknown'
+    provenance_verified = False
     try:
         verify(out, REQUIRED)
         scenario = json.loads((out / 'scenario.json').read_text()); validate(scenario)
@@ -59,6 +62,27 @@ def evaluate(out: Path) -> dict[str, Any]:
         origin = target.get('evidence_origin', 'unknown')
         if origin not in {'native-qnx', 'synthetic-unit-test'}:
             raise ValueError('unrecognised native evidence origin')
+        if origin == 'native-qnx':
+            verify(out, REQUIRED | NATIVE_PROVENANCE)
+            build = json.loads((out / 'build-record.json').read_text())
+            source = json.loads((out / 'source-manifest.json').read_text())
+            abi = json.loads((out / 'abi.json').read_text())
+            if (target.get('system') != 'QNX' or abi.get('system') != 'QNX' or
+                    abi.get('schema') != 1 or abi.get('dl_schema') != 1):
+                raise ValueError('native OS/ABI observation missing')
+            if (build.get('status') != 'COMPILED' or build.get('qnx_compiled') is not True or
+                    target.get('source_set_sha256') != build.get('source_set_sha256') or
+                    source.get('source_set_sha256') != build.get('source_set_sha256')):
+                raise ValueError('native build/source identity missing')
+            import hashlib
+            source_digest = hashlib.sha256(json.dumps(source['files'], sort_keys=True,
+                separators=(',', ':')).encode()).hexdigest()
+            if source_digest != source['source_set_sha256']:
+                raise ValueError('native source manifest digest mismatch')
+            for role in ('server', 'client', 'abi'):
+                if target.get(role + '_sha256') != build['binaries']['dl-qnx-' + role]['sha256']:
+                    raise ValueError('native runtime/build binary mismatch')
+            provenance_verified = True
         completion = json.loads((out / 'completion.json').read_text())
         if not completion.get('complete'):
             raise ValueError('incomplete native run: ' + str(completion.get('error')))
@@ -119,6 +143,14 @@ def evaluate(out: Path) -> dict[str, Any]:
                 if min(e['monotonic_ns'] for e in unblock) < received[0]['monotonic_ns']:
                     errors.append('unblock precedes receipt')
                     continue
+                # An unblock observed only after a commit does not demonstrate the
+                # intended pre-commit cancellation condition. Do not accuse a legal
+                # completion of failing to undo a past effect.
+                first_unblock = min(e['monotonic_ns'] for e in unblock)
+                commits = [e['commit_ns'] for e in effects if e['command_id'] == cid]
+                if commits and min(commits) <= first_unblock:
+                    errors.append(f'pre-commit unblock not established for request {cid}')
+                    continue
                 activations += 1
                 if counts[cid]:
                     violations.append({'property': 'cancel_before_effect', 'id': cid})
@@ -130,14 +162,15 @@ def evaluate(out: Path) -> dict[str, Any]:
         healthy = counts[probe]
         if healthy != 1 or by_id[probe]['status'] != 0:
             violations.append({'property': 'healthy_progress', 'id': probe})
-    except (OSError, ValueError, KeyError, TypeError, IndexError) as exc:
+    except (OSError, ValueError, KeyError, TypeError, IndexError, AttributeError) as exc:
         errors.append(str(exc))
     return {'verdict': 'INCONCLUSIVE' if errors else 'FAIL' if violations else 'PASS',
         'properties': sorted({v['property'] for v in violations}), 'violations': violations,
         'evidence_errors': errors, 'observed_effects': effect_count,
         'healthy_effects': healthy, 'unblock_activations': activations,
         'evidence_origin': origin,
-        'qnx_executed': origin == 'native-qnx',
+        'qnx_executed': origin == 'native-qnx' and provenance_verified,
+        'native_provenance_verified': provenance_verified,
         'limits': 'Evidence for a cooperative virtual-effect cancellation policy. '
                   'No atomic hardware cancellation, production safety or worst-case latency claim.'}
 
@@ -160,8 +193,34 @@ def run(scenario: dict[str, Any], mode: str, out: Path, bin_dir: Path) -> dict[s
         result = {'verdict': 'NOT_RUN', 'qnx_executed': False, 'reason': 'native binaries missing'}
         _write(out / 'result.json', result); return result
     out = out.resolve()
+    try:
+        build = json.loads((bin_dir / 'build-record.json').read_text())
+        source = json.loads((bin_dir / 'source-manifest.json').read_text())
+        if (build.get('status') != 'COMPILED' or build.get('qnx_compiled') is not True or
+                source_manifest(ROOT, executable_only=True) != source or
+                source.get('source_set_sha256') != build.get('source_set_sha256')):
+            raise ValueError('source does not match the compiled build')
+        for role in ('server', 'client', 'abi'):
+            if digest(bin_dir / ('dl-qnx-' + role)) != build['binaries']['dl-qnx-' + role]['sha256']:
+                raise ValueError('native binary does not match build provenance')
+        process = subprocess.run([str(bin_dir / 'dl-qnx-abi')], capture_output=True,
+                                 text=True, check=True, timeout=5)
+        abi = json.loads(process.stdout)
+        if abi.get('system') != 'QNX' or abi.get('dl_schema') != 1:
+            raise ValueError('native runtime ABI probe did not identify QNX')
+        _write(out / 'build-record.json', build)
+        _write(out / 'source-manifest.json', source)
+        _write(out / 'abi.json', abi)
+    except (OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError) as exc:
+        result = {'verdict': 'NOT_RUN', 'qnx_executed': False,
+                  'reason': 'native provenance/ABI prerequisite failed: ' + str(exc)}
+        _write(out / 'result.json', result)
+        return result
     _write(out / 'scenario.json', scenario)
-    target = {'evidence_origin': 'native-qnx', 'os': platform.platform(), 'machine': platform.machine(),
+    target = {'evidence_origin': 'native-qnx', 'system': platform.system(),
+              'os': platform.platform(), 'machine': platform.machine(),
+              'source_set_sha256': source['source_set_sha256'],
+              'abi_sha256': digest(bin_dir / 'dl-qnx-abi'),
               'timeout_errnos': [errno.ETIMEDOUT, errno.ECANCELED],
               'server_sha256': digest(server_binary), 'client_sha256': digest(client_binary),
               'policy': mode, 'observer': 'separate-process/virtual-integer-state'}
@@ -175,18 +234,17 @@ def run(scenario: dict[str, Any], mode: str, out: Path, bin_dir: Path) -> dict[s
     try:
         observer = subprocess.Popen([sys.executable, '-S', '-m', 'deadline_lab.plant', '--fd', str(read_fd),
             '--out', str(out / 'effects.jsonl')], stdout=subprocess.PIPE, stderr=observer_err,
-            pass_fds=(read_fd,), cwd=ROOT)
+            pass_fds=(read_fd,), cwd=ROOT, bufsize=0)
         os.close(read_fd); read_fd = -1
-        ready, _, _ = select.select([observer.stdout], [], [], 3)
-        if not ready or observer.stdout.readline() != b'READY\n':
+        if LineReader(observer.stdout.fileno(), 256).read(3) != 'READY':
             raise RuntimeError('independent observer did not start')
         server = subprocess.Popen([str(server_binary), mode, '1', str(out / 'server.jsonl'), str(write_fd)],
-                                  stdout=subprocess.PIPE, stderr=server_err, pass_fds=(write_fd,))
+                                  stdout=subprocess.PIPE, stderr=server_err, pass_fds=(write_fd,), bufsize=0)
         os.close(write_fd); write_fd = -1
-        ready, _, _ = select.select([server.stdout], [], [], 3)
-        if not ready:
+        greeting = LineReader(server.stdout.fileno(), 256).read(3)
+        if greeting is None:
             raise RuntimeError('native server startup deadline')
-        endpoint = server.stdout.readline().decode('ascii').split()
+        endpoint = greeting.split()
         if len(endpoint) != 4 or endpoint[0] != 'READY' or int(endpoint[1]) != server.pid:
             raise RuntimeError('invalid native endpoint')
         _, pid, chid, epoch = endpoint
@@ -199,7 +257,7 @@ def run(scenario: dict[str, Any], mode: str, out: Path, bin_dir: Path) -> dict[s
             if observation['id'] != cid:
                 raise RuntimeError('native client ID mismatch')
             clients.append(observation)
-    except (OSError, RuntimeError, ValueError, KeyError, subprocess.SubprocessError) as exc:
+    except (OSError, EOFError, RuntimeError, ValueError, KeyError, subprocess.SubprocessError) as exc:
         error = f'{type(exc).__name__}: {exc}'
     finally:
         if server:
@@ -229,7 +287,7 @@ def run(scenario: dict[str, Any], mode: str, out: Path, bin_dir: Path) -> dict[s
     for name in REQUIRED:
         if not (out / name).exists():
             (out / name).write_text('')
-    seal(out, sorted(REQUIRED))
+    seal(out, sorted(REQUIRED | NATIVE_PROVENANCE))
     result = evaluate(out)
     result.update(mode=mode, adapter='qnx-native')
     _write(out / 'result.json', result)

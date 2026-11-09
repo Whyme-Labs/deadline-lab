@@ -26,7 +26,9 @@ def main() -> int:
     print("READY", flush=True)
     try:
         with os.fdopen(args.fd, "rb", buffering=0) as stream:
-            for line in stream:
+            for line in iter(lambda: stream.readline(257), b""):
+                if len(line) > 256:
+                    raise ValueError("oversized effect frame")
                 tokens = line.decode("ascii").split()
                 if len(tokens) != 7 or tokens[0] != "E" or not line.endswith(b"\n"):
                     raise ValueError("malformed effect frame")

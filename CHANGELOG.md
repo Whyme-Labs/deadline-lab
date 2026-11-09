@@ -1,3 +1,13 @@
+# v0.3.0
+
+- Restore the missing native build helper and verify source-archive completeness.
+- Bound startup line reads and reject oversized virtual-effect frames.
+- Preserve unknown reduction outcomes; do not claim deletion minimality from missing evidence.
+- Require a pre-commit unblock observation for the native cancellation test.
+- Add source-bound native build records, an actual-SDK ABI probe and a strict evidence gate.
+- Add the native acceptance-to-reduction-to-JUnit workflow. Native success remains unexecuted.
+- Add targeted tests, before/after reproductions and a fresh Linux/nginx revalidation.
+
 # Changes
 
 ## 0.2.0, 9 November 2026
