@@ -195,6 +195,38 @@ class DistributionTests(unittest.TestCase):
                 self.assertEqual(0o755,entry.external_attr>>16 & 0o777)
                 archive.extractall(Path(temp)/'extract')
             source_manifest.verify(Path(temp)/'extract/deadline-lab',source_manifest.manifest(ROOT))
+    def test_offline_completion_record_is_in_evidence_package(self):
+        spec=importlib.util.spec_from_file_location('dl_offline_packager',ROOT/'scripts/package-release.py')
+        mod=importlib.util.module_from_spec(spec);spec.loader.exec_module(mod)
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp)/'source';root.mkdir()
+            for source in source_manifest.source_paths(ROOT):
+                p=root/source.relative_to(ROOT);p.parent.mkdir(parents=True,exist_ok=True)
+                p.write_bytes(source.read_bytes())
+            evidence=root/'evidence'/'offline';evidence.mkdir(parents=True)
+            # Include invalid text too: export must retain evidence of a bad import.
+            record=evidence/'capture.exit';record.write_bytes(b'256\n')
+            out=Path(temp)/'evidence.zip';result=mod.create(root,out,evidence=True)
+            self.assertTrue(result['readback_verified'])
+            with zipfile.ZipFile(out) as z:
+                self.assertEqual(b'256\n',z.read('deadline-lab/evidence/offline/capture.exit'))
+
+    def test_completion_allowlist_stays_narrow_and_bounded(self):
+        spec=importlib.util.spec_from_file_location('dl_exit_packager',ROOT/'scripts/package-release.py')
+        mod=importlib.util.module_from_spec(spec);spec.loader.exec_module(mod)
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp)/'source';root.mkdir()
+            for source in source_manifest.source_paths(ROOT):
+                p=root/source.relative_to(ROOT);p.parent.mkdir(parents=True,exist_ok=True)
+                p.write_bytes(source.read_bytes())
+            evidence=root/'evidence';evidence.mkdir()
+            p=evidence/'capture.exit';p.write_bytes(b'x'*65)
+            with self.assertRaisesRegex(ValueError,'unreviewed evidence'):
+                mod.create(root,Path(temp)/'oversized.zip',evidence=True)
+            p.unlink();(evidence/'other.exit').write_bytes(b'0\n')
+            with self.assertRaisesRegex(ValueError,'unreviewed evidence'):
+                mod.create(root,Path(temp)/'unknown.zip',evidence=True)
+
     def test_distribution_does_not_depend_on_git(self):
         with patch.dict(os.environ,{'PATH':'/not-here'}):
             self.assertGreater(len(source_manifest.manifest(ROOT)['files']),60)

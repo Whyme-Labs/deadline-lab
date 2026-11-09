@@ -38,7 +38,10 @@ def create(root: Path, output: Path, evidence: bool = False, history: bool = Fal
                 raise ValueError('refusing symlink in evidence')
             if path.is_file():
                 permitted_state = path.parent.name == 'state-files' and path.name in {'state', 'healthy'}
-                if path.suffix not in allowed and not permitted_state:
+                # Preserve even malformed small completion records for diagnosis.
+                # Permit the exact collector artifact, not arbitrary .exit files.
+                permitted_completion = path.name == 'capture.exit' and path.stat().st_size <= 64
+                if path.suffix not in allowed and not permitted_state and not permitted_completion:
                     raise ValueError('unreviewed evidence file type: ' + path.name)
                 if path.stat().st_size > 16_000_000:
                     raise ValueError('evidence file exceeds package bound')

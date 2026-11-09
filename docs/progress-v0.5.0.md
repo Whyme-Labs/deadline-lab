@@ -41,11 +41,17 @@ All eight expected outcomes occurred. The trial contains four real collector exe
 
 ## Validation
 
-The full Python suite passed 156 tests, including 26 new offline handoff tests and the available nginx execution tests. The portable C programs passed 1,052 core assertions, nine effect-pipe assertions and four SHA-256 known-answer vectors. The eight core regression expectations and four external regression expectations remained satisfied.
+The full Python suite passed 158 tests, including 26 new offline handoff tests and two new packaging tests and the available nginx execution tests. The portable C programs passed 1,052 core assertions, nine effect-pipe assertions and four SHA-256 known-answer vectors. The eight core regression expectations and four external regression expectations remained satisfied.
 
 The local, external, collector and offline verification scripts all passed. The collector script retains its separate portable smoke checks; these are not added to the new offline trial count. No new sanitizer or native timing claim is made in this version. Earlier sanitizer and campaign records remain labelled by their historical versions.
 
 A fresh source-only ZIP was extracted into a different path containing spaces. Its complete source manifest was verified, then all four verification scripts rebuilt and passed without reusing the working build directory or downloading dependencies. This is an automated package trial, not an independent developer's usability study.
+
+The first full-evidence packaging attempt rejected the new `capture.exit` file.
+The packager now admits that exact artifact up to 64 bytes, including malformed
+completion text that a diagnostic bundle must preserve. Arbitrary `.exit` files
+and oversized completion records remain rejected. Two regressions exercise this
+boundary. The final full archive was reopened and checked before delivery.
 
 ## Unresolved native dependency
 
