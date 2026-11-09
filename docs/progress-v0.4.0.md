@@ -57,6 +57,12 @@ Cleanup is limited to owned direct child processes and recorded scratch files. T
 
 The framed stream is bounded, but its integrity metadata is not authentication. Native effect observations remain virtual and cooperative. No physical motor, current optimisation, torque measurement, thermal compensation or universal cancellation guarantee was tested.
 
+## Fresh-package trial
+
+A source-only archive containing 90 source files was extracted into a new directory whose path contains spaces. Its full source manifest and executable script modes were verified. The local, external and collector verification commands then built from scratch and passed without downloading packages, installing dependencies or using the original build directory. The existing host compiler and nginx installation were reused. The collector command performed a separate 16-case one-repetition campaign. That additional smoke check is not included in the 48-case retained primary campaign count.
+
+This is an automated fresh-package trial, not an outside developer's usability assessment. The first shell invocation accidentally used the parent directory and returned a missing-script error. That log was preserved; the documented commands were then run from the extracted project directory and passed. No source change was needed for that invocation error.
+
 ## Reproduction
 
 From the extracted source directory:
