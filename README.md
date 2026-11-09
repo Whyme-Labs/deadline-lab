@@ -2,19 +2,19 @@
 
 Find a recovery or ordering failure, observe the effect, reduce the failing sequence, and export a regression test.
 
-**v0.3.0 is an engineering prototype, not a competition-ready release.** The C fixture and an independently authored, unmodified nginx HTTP/file server have run on Linux. The native QNX source now has a separate effect observer and a shared reduction entry point, but has not compiled or executed on QNX. No physical actuator, production vulnerability or safety certification is claimed.
+**v0.4.0 is an engineering prototype, not a competition-ready release.** The C fixture and an independently authored, unmodified nginx HTTP/file server have run on Linux. The native QNX source now has a separate effect observer and a shared reduction entry point, but has not compiled or executed on QNX. No physical actuator, production vulnerability or safety certification is claimed.
 
-## New in v0.3.0
+## New in v0.4.0
 
-This revision hardens the workbench itself and completes the source-level native acceptance workflow. It does not claim the blocked native milestone has run.
+The native target can now use a small C collector. Python, reduction and regression generation stay on the developer host. The new path needs four project binaries and two provenance files on the target, rather than a target Python installation and source checkout.
 
-- Partial readiness messages now have a bounded read. A readable pipe is not treated as a complete line.
-- Inconclusive or unexecuted deletion tests cannot prove a reduced witness is minimal.
-- The native checker distinguishes an unblock observed before commit from one observed after commit.
-- The documented QNX build helper, omitted from the prior ZIP despite being in its Git history, is restored. The archive builder accounts for all selected source and tracked files and preserves executable bits.
-- A build/source/binary identity record, native ABI probe, strict paired-campaign gate, reduction and exported JUnit regressions are connected in one native workflow. Native code is still uncompiled here.
+The portable collector has run on Linux against separate process-I/O fixtures. It bounds readiness, output and elapsed time; observes virtual effects through a private pipe; cleans up owned direct children; and exports a bounded artifact stream. Every native result must still match the compiled build and show actual QNX behaviour. No native source has compiled or executed here, and no live SSH session has been tested.
 
-The current local evidence is in `evidence/v0.3.0`. Historical v0.1 and v0.2 campaigns are retained as historical records, not new runs. Read `docs/progress-v0.3.0.md` and `docs/native-handoff.md` for the current state.
+```sh
+./scripts/verify-capture.sh
+```
+
+Read `docs/host-driven-capture.md` for exact commands and limits. The current release evidence is under `evidence/v0.4.0`; prior results remain historical. A passing transport test is not a passing QNX test.
 
 ## Run the local checks
 
@@ -32,7 +32,7 @@ The independent-target checks additionally require a locally installed nginx wit
 
 The latter returns 77 when the optional target is absent, not a passing result. `verify-local.sh` skips optional nginx execution tests when nginx is absent. A successful core-only check does not close the independent-target gate.
 
-## See the newly validated failure
+## Independent-target example
 
 An expiry guard is not an ordering guard. Both requests can still be valid when a delayed older request overwrites a newer value.
 
@@ -106,7 +106,7 @@ The shared reducer accepts an adapter runner and a validator. It repeats candida
 
 ## Native QNX gate
 
-An appropriately licensed SDK and a booted QNX target remain required. No proprietary SDK headers, runtime images or licence material are included. This workflow requires Python 3.10 or newer on both the development host and target.
+An appropriately licensed SDK and a booted QNX target remain required. No proprietary SDK headers, runtime images or licence material are included. The legacy workflow below requires Python 3.10 or newer on both the development host and target. The preferred C collector path keeps Python on the development host only; see `docs/host-driven-capture.md`.
 
 ```sh
 # On the development host, after sourcing an authorised QNX SDK environment:
@@ -131,6 +131,17 @@ To inspect host prerequisites without compiling:
 A READY_TO_ATTEMPT result means only that tools and directories exist. It does not validate a licence or compile anything. Missing prerequisites produce NOT_RUN.
 
 See `docs/native-handoff.md` for exact commands and expected outcomes. The original separate `qnx-canary.py` and `qnx-reduce.py` entry points remain available.
+
+To drive native acceptance from the developer host without target Python:
+
+```sh
+# After building and deploying the six project files to an authorised QNX target:
+python3 -S -m deadline_lab.native_workflow accept \
+  --collector --ssh qnx-lab --bin /tmp/deadline-bin \
+  --out artifacts/native-host-acceptance
+```
+
+This uses an existing approved SSH alias and verified host key. It does not provision, upload, install, purchase or change target security policy. The native success path and SSH execution remain untested here.
 
 ## Evidence limits and next decision
 

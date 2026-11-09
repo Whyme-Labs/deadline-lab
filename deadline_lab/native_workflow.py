@@ -1,6 +1,7 @@
-"""Native acceptance -> reduction -> exported regression, only on actual QNX.
+"""Native acceptance -> reduction -> exported regression, only from actual QNX.
 
-This entry point cannot close the native gate on Linux. A failed prerequisite is
+The C collector can be driven from a POSIX host over an existing SSH connection.
+A local Linux target cannot close the native gate. A failed prerequisite is
 recorded and returned as 77, never recast as a successful native verification.
 """
 from __future__ import annotations
@@ -28,8 +29,19 @@ def write(path: Path, value: dict) -> None:
     path.write_text(json.dumps(value, indent=2, sort_keys=True) + '\n')
 
 
+def execute_case(scenario: dict, mode: str, out: Path, bin_dir: Path,
+                 collector: bool = False, ssh: str | None = None) -> dict:
+    if ssh and not collector:
+        raise ValueError('SSH requires the target C collector')
+    if collector:
+        from .capture import run_native
+        return run_native(scenario, mode, out, str(bin_dir), ssh=ssh)
+    return run(scenario, mode, out, bin_dir)
+
+
 def regress(suite_path: Path, out: Path, bin_dir: Path,
-            candidate: str = 'reference', sensitivity: bool = False) -> dict:
+            candidate: str = 'reference', sensitivity: bool = False, *,
+            collector: bool = False, ssh: str | None = None) -> dict:
     if candidate not in {'reference', 'ignore_unblock'}:
         raise ValueError('unknown native candidate')
     suite = json.loads(suite_path.read_text())
@@ -60,7 +72,7 @@ def regress(suite_path: Path, out: Path, bin_dir: Path,
         if sensitivity:
             choices.append(('ignore_unblock', 'sensitivity'))
         for mode, purpose in choices:
-            result = run(scenario, mode, out / f'{i}-{purpose}', bin_dir)
+            result = execute_case(scenario, mode, out / f'{i}-{purpose}', bin_dir, collector, ssh)
             expected = (result['verdict'] == 'PASS' if purpose == 'candidate' else
                         result['verdict'] == 'FAIL' and spec['property'] in result['properties'])
             # Synthetic success is not native regression success.
@@ -87,11 +99,14 @@ def regress(suite_path: Path, out: Path, bin_dir: Path,
     return summary
 
 
-def acceptance(bin_dir: Path, out: Path, repetitions: int = 5) -> dict:
+def acceptance(bin_dir: Path, out: Path, repetitions: int = 5, *,
+               collector: bool = False, ssh: str | None = None) -> dict:
     if type(repetitions) is not int or not 5 <= repetitions <= 20:
         raise ValueError('acceptance requires 5..20 paired repetitions')
     out.mkdir(parents=True, exist_ok=False)
-    if platform.system() != 'QNX':
+    if ssh and not collector:
+        raise ValueError('SSH requires the target C collector')
+    if platform.system() != 'QNX' and not collector:
         result = {'schema': 1, 'status': 'NOT_RUN', 'native_gate_closed': False,
                   'qnx_executed': False, 'host': platform.system(),
                   'reason': 'Run on an authorised QNX target with the licensed build outputs.'}
@@ -102,7 +117,7 @@ def acceptance(bin_dir: Path, out: Path, repetitions: int = 5) -> dict:
     for i in range(repetitions):
         for mode in ('reference', 'ignore_unblock'):
             name = f'{i}-{mode}'
-            result = run(NOISY_SCENARIO, mode, campaign / name, bin_dir)
+            result = execute_case(NOISY_SCENARIO, mode, campaign / name, bin_dir, collector, ssh)
             results.append(result); runs.append({'path': name, 'repetition': i, 'policy': mode})
             if result['verdict'] == 'NOT_RUN':
                 write(campaign / 'summary.json', {'schema': 3, 'runs': runs, 'results': results,
@@ -111,19 +126,20 @@ def acceptance(bin_dir: Path, out: Path, repetitions: int = 5) -> dict:
                           'qnx_executed': result.get('qnx_executed', False), 'reason': result['reason']}
                 write(out / 'acceptance.json', answer)
                 return answer
+    executed = bool(results) and all(r.get('qnx_executed') is True for r in results)
     write(campaign / 'summary.json', {'schema': 3, 'runs': runs, 'results': results,
-                                      'repetitions': repetitions, 'qnx_executed': True})
+                                      'repetitions': repetitions, 'qnx_executed': executed})
     gate = assess(campaign)
     write(out / 'native-gate.json', gate)
     answer = {'schema': 1, 'status': 'GATE_NOT_ESTABLISHED',
-              'native_gate_closed': gate['native_gate_closed'], 'qnx_executed': True,
+              'native_gate_closed': gate['native_gate_closed'], 'qnx_executed': executed,
               'reduction_complete': False, 'regression_complete': False}
     if not gate['native_gate_closed']:
         write(out / 'acceptance.json', answer)
         return answer
     try:
         witness, record = reduce_actions(NOISY_SCENARIO,
-            lambda s,d: run(s, 'ignore_unblock', d, bin_dir), validate,
+            lambda s,d: execute_case(s, 'ignore_unblock', d, bin_dir, collector, ssh), validate,
             'cancel_before_effect', repetitions=2, max_executions=300)
         write(out / 'reduction.json', record)
         if not record['final_reproduces'] or record['deletion_1_minimal'] is not True:
@@ -136,10 +152,10 @@ def acceptance(bin_dir: Path, out: Path, repetitions: int = 5) -> dict:
         checks = []
         for i in range(5):
             checks.append(regress(export / 'suite.json', out / f'regression-replay-{i}',
-                                  bin_dir, sensitivity=True))
+                                  bin_dir, sensitivity=True, collector=collector, ssh=ssh))
         # Deliberately substitute the failing policy into the candidate slot.
         sensitivity = regress(export / 'suite.json', out / 'regressed-candidate',
-                              bin_dir, candidate='ignore_unblock')
+                              bin_dir, candidate='ignore_unblock', collector=collector, ssh=ssh)
         good = all(r['passed'] for r in checks)
         bad = (not sensitivity['passed'] and sensitivity['inconclusive'] == 0 and
                sensitivity['qnx_executed'])
@@ -163,12 +179,15 @@ def main() -> int:
     r.add_argument('--out', type=Path, required=True)
     r.add_argument('--candidate', choices=('reference','ignore_unblock'), default='reference')
     r.add_argument('--sensitivity', action='store_true')
+    for parser in (a, r):
+        parser.add_argument('--collector', action='store_true', help='C capture; no Python on target')
+        parser.add_argument('--ssh', help='existing approved SSH alias; requires --collector')
     args = p.parse_args()
     if args.command == 'accept':
-        result = acceptance(args.bin, args.out, args.repetitions)
+        result = acceptance(args.bin, args.out, args.repetitions, collector=args.collector, ssh=args.ssh)
         code = 77 if result['status'] == 'NOT_RUN' else 0 if result['status'] == 'ACCEPTANCE_COMPLETE' else 1
     else:
-        result = regress(args.suite, args.out, args.bin, args.candidate, args.sensitivity)
+        result = regress(args.suite, args.out, args.bin, args.candidate, args.sensitivity, collector=args.collector, ssh=args.ssh)
         code = 0 if result['passed'] else 77 if not result['qnx_executed'] else 1
     print(json.dumps(result, indent=2))
     return code

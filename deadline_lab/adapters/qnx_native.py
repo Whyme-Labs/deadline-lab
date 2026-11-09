@@ -60,6 +60,9 @@ def evaluate(out: Path) -> dict[str, Any]:
         scenario = json.loads((out / 'scenario.json').read_text()); validate(scenario)
         target = json.loads((out / 'target.json').read_text())
         origin = target.get('evidence_origin', 'unknown')
+        if target.get('collector') == 'c-capture-v1':
+            from ..capture import verify_imported
+            verify_imported(out)
         if origin not in {'native-qnx', 'synthetic-unit-test'}:
             raise ValueError('unrecognised native evidence origin')
         if origin == 'native-qnx':

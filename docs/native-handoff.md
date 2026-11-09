@@ -1,3 +1,5 @@
+> v0.4 update: the host-driven C collector path removes Python from the target requirements. See [host-driven capture](host-driven-capture.md). The original on-target Python workflow below remains available. Native execution is still unverified in this environment.
+
 # Native QNX handoff
 
 Status for v0.3.0: the source-level workflow is connected, but no native compilation or execution has occurred in this environment. The local shell helpers returned 77. Do not treat a Linux regression suite or synthetic native-record fixture as a completed native gate.

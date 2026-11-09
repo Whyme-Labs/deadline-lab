@@ -1,3 +1,12 @@
+# v0.4.0, 10 November 2026
+
+- Add a dependency-light C collector and host-side stream import. No Python or helper commands on the target for this path.
+- Preserve raw effect observations and compare derived evidence against them during offline native rechecks.
+- Add an optional existing-SSH transport with strict host-key checks. Live SSH and native QNX remain unexecuted.
+- Connect collector mode to native acceptance, reduction, regression export and negative-control checks.
+- Add bounded real-process transport tests, digest known-answer tests and release-completeness requirements.
+- Retain all older native and Linux workflows. No claim of native compilation, physical actuator validation or contest readiness.
+
 # v0.3.0
 
 - Restore the missing native build helper and verify source-archive completeness.

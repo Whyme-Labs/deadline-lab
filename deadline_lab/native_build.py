@@ -78,7 +78,7 @@ def build(out: Path, variant: str, check_only: bool = False) -> dict:
         if manifest(ROOT, executable_only=True) != source:
             raise RuntimeError('source changed during build')
         binaries = {n: check_elf(bdir / n, variant) for n in
-                    ('dl-qnx-server', 'dl-qnx-client', 'dl-qnx-abi', 'dl-core-tests', 'dl-effect-tests')}
+                    ('dl-qnx-server', 'dl-qnx-client', 'dl-qnx-abi', 'dl-capture', 'dl-core-tests', 'dl-effect-tests', 'dl-sha256-tests')}
         result.update(status='COMPILED', qnx_compiled=True, binaries=binaries,
                       compiler_sha256=digest(Path(shutil.which('qcc'))))
         # Copy provenance beside binaries for the target collector. No SDK files.

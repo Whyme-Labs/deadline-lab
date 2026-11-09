@@ -22,3 +22,7 @@ The next meaningful gate remains QNX execution. Compile with the real SDK, colle
 Then ask an unfamiliar developer to reproduce a failure and record the setup cost. A specific unseeded application mistake would strengthen the submission further, but its existence must not be assumed.
 
 Do not claim invention of fault injection, tracing, watchdogs, delta debugging or motor control. Do not call Linux an emulation of QNX. Do not claim universal cancellation, safety, motor efficiency, worst-case latency or durable exactly-once physical effects.
+
+## v0.4 update
+
+Host-driven C collection removes the target Python dependency in the new execution path. Real POSIX process-I/O tests cover collection, framing and direct-child cleanup. The full host-to-QNX acceptance success path, live SSH, an external developer trial and the actual QNX compilation/runtime gate remain open. These local tests are not evidence of native cancellation semantics or hardware safety.

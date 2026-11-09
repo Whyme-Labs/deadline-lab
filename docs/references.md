@@ -42,3 +42,11 @@ R1, R2, R4 and R7 were reopened during this revision. Their documentation does n
   https://www.qnx.com/developers/docs/8.0/com.qnx.doc.neutrino.utilities/topic/q/qcc.html
 
 The late-unblock checker correction is our test-contract decision. The experiment must establish the intended pre-commit condition before claiming its cancellation policy failed. It is not a claim that every QNX service must cancel every operation, or that a timeout reverses an already committed effect.
+
+## v0.4 portable target collector references
+
+Reviewed 10 November 2026, UTC+8. These are API references, not evidence of a completed QNX build.
+
+- QNX 8 posix_spawn: https://www.qnx.com/developers/docs/8.0/com.qnx.doc.neutrino.lib_ref/topic/p/posix_spawn.html
+- QNX 8 poll: https://www.qnx.com/developers/docs/8.0/com.qnx.doc.neutrino.lib_ref/topic/p/poll.html
+- QNX 8 SSH utility: https://www.qnx.com/developers/docs/8.0/com.qnx.doc.neutrino.utilities/topic/s/ssh.html

@@ -1,13 +1,8 @@
 {
   "schema": 2,
   "adapter": "qnx-native",
-  "name": "unblock-before-effect",
+  "name": "unblock-before-virtual-effect",
   "actions": [
-    {
-      "op": "call",
-      "work_ms": 150,
-      "timeout_ms": 25,
-      "expect_unblock": true
-    }
+    {"op": "call", "work_ms": 150, "timeout_ms": 25, "expect_unblock": true}
   ]
 }

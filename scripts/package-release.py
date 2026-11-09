@@ -45,17 +45,17 @@ def create(root: Path, output: Path, evidence: bool = False, history: bool = Fal
                 selected[path.relative_to(root).as_posix()] = path.read_bytes()
     if history:
         selected['source-history.bundle'] = (root / 'source-history.bundle').read_bytes()
-    release = {'schema': 1, 'version': '0.3.0', 'source_files': len(source['files']),
+    release = {'schema': 1, 'version': '0.4.0', 'source_files': len(source['files']),
                'source_set_sha256': source['source_set_sha256'],
                'includes_evidence': evidence, 'includes_source_history': history,
                'native_qnx_gate': 'NOT_ESTABLISHED',
-               'note': 'Read evidence/v0.3.0 for current validation. No SDK or compiled binaries included.'}
+               'note': 'Read evidence/v0.4.0 for current validation. No SDK or compiled binaries included.'}
     selected['RELEASE.json'] = (json.dumps(release, indent=2) + '\n').encode()
     hashes = {name: hashlib.sha256(data).hexdigest() for name, data in sorted(selected.items())}
     selected['MANIFEST.sha256'] = ''.join(f'{d}  {n}\n' for n, d in hashes.items()).encode()
     with zipfile.ZipFile(output, 'x', compression=zipfile.ZIP_DEFLATED, compresslevel=8) as archive:
         for name, data in sorted(selected.items()):
-            item = zipfile.ZipInfo('deadline-lab/' + name, date_time=(2026, 11, 9, 0, 0, 0))
+            item = zipfile.ZipInfo('deadline-lab/' + name, date_time=(2026, 11, 10, 0, 0, 0))
             item.create_system = 3
             item.external_attr = (stat.S_IFREG | modes.get(name, 0o644)) << 16
             item.compress_type = zipfile.ZIP_DEFLATED
