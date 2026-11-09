@@ -1,0 +1,11 @@
+build*/
+artifacts/
+__pycache__/
+*.pyc
+*.plist
+.env
+.env.*
+*.pem
+*.key
+# Raw evidence is included in the local delivery archive, not committed or uploaded by CI.
+evidence/

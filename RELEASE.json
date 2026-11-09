@@ -1,0 +1,22 @@
+{
+  "project": "Deadline Lab",
+  "version": "0.1.0",
+  "date": "2026-11-09",
+  "local_source_commit": "7525fe239523009af24e4d7f3ffba1df7d3906dc",
+  "source_files": 44,
+  "remote_repository_created": false,
+  "remote_ci_triggered": false,
+  "qnx_compiled": false,
+  "qnx_executed": false,
+  "physical_hardware_tested": false,
+  "evidence_scope": "Linux real-process synthetic fixtures with deliberately seeded defects",
+  "archive_excludes": [
+    "build outputs",
+    "Git internal metadata",
+    "Python caches",
+    "superseded exploratory pilot folders",
+    "licensed QNX components",
+    "prior internal research memo"
+  ],
+  "entrypoint": "./scripts/verify-local.sh"
+}

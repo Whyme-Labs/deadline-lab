@@ -1,0 +1,10 @@
+{
+  "schema": 1,
+  "name": "cancel-acknowledged-before-commit",
+  "actions": [
+    {"op": "mint", "key": "move", "ttl_ms": 5000, "delta": 5},
+    {"op": "prepare", "key": "move"},
+    {"op": "cancel", "key": "move"},
+    {"op": "commit", "key": "move"}
+  ]
+}

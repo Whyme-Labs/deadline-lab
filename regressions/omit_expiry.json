@@ -1,0 +1,25 @@
+{
+  "schema": 1,
+  "name": "witness-omit_expiry-authorisation_deadline",
+  "seed": 1001,
+  "actions": [
+    {
+      "op": "mint",
+      "key": "c1",
+      "ttl_ms": 8,
+      "delta": 3
+    },
+    {
+      "op": "wait",
+      "ms": 24
+    },
+    {
+      "op": "prepare",
+      "key": "c1"
+    },
+    {
+      "op": "commit",
+      "key": "c1"
+    }
+  ]
+}

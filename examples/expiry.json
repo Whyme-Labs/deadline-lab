@@ -1,0 +1,10 @@
+{
+  "schema": 1,
+  "name": "paused-controller-expired-authorisation",
+  "actions": [
+    {"op": "mint", "key": "move", "ttl_ms": 8, "delta": 5},
+    {"op": "prepare", "key": "move"},
+    {"op": "pause", "ms": 24},
+    {"op": "commit", "key": "move"}
+  ]
+}

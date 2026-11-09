@@ -1,0 +1,11 @@
+{
+  "schema": 1,
+  "name": "effect-happened-but-acknowledgement-was-lost",
+  "actions": [
+    {"op": "mint", "key": "move", "ttl_ms": 5000, "delta": 5},
+    {"op": "prepare", "key": "move"},
+    {"op": "lost_ack", "key": "move"},
+    {"op": "prepare", "key": "move"},
+    {"op": "commit", "key": "move"}
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "name": "recovery-regressions",
+  "cases": [
+    {
+      "name": "generation_fence",
+      "scenario": "omit_epoch.json",
+      "mutation": "omit_epoch",
+      "required_property": "generation_fence"
+    },
+    {
+      "name": "cancel_acknowledged",
+      "scenario": "omit_cancel.json",
+      "mutation": "omit_cancel",
+      "required_property": "cancel_acknowledged"
+    },
+    {
+      "name": "at_most_once",
+      "scenario": "omit_dedupe.json",
+      "mutation": "omit_dedupe",
+      "required_property": "at_most_once"
+    },
+    {
+      "name": "authorisation_deadline",
+      "scenario": "omit_expiry.json",
+      "mutation": "omit_expiry",
+      "required_property": "authorisation_deadline"
+    }
+  ]
+}

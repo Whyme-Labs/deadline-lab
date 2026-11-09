@@ -1,0 +1,25 @@
+{
+  "schema": 1,
+  "name": "witness-omit_cancel-cancel_acknowledged",
+  "seed": 1000,
+  "actions": [
+    {
+      "op": "mint",
+      "key": "c1",
+      "ttl_ms": 5000,
+      "delta": -2
+    },
+    {
+      "op": "prepare",
+      "key": "c1"
+    },
+    {
+      "op": "cancel",
+      "key": "c1"
+    },
+    {
+      "op": "commit",
+      "key": "c1"
+    }
+  ]
+}

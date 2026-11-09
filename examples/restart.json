@@ -1,0 +1,10 @@
+{
+  "schema": 1,
+  "name": "old-command-after-process-kill-and-restart",
+  "actions": [
+    {"op": "mint", "key": "move", "ttl_ms": 5000, "delta": 5},
+    {"op": "restart"},
+    {"op": "prepare", "key": "move"},
+    {"op": "commit", "key": "move"}
+  ]
+}

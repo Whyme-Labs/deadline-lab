@@ -1,0 +1,29 @@
+{
+  "schema": 1,
+  "name": "witness-omit_dedupe-at_most_once",
+  "seed": 1000,
+  "actions": [
+    {
+      "op": "mint",
+      "key": "c4",
+      "ttl_ms": 5000,
+      "delta": -2
+    },
+    {
+      "op": "prepare",
+      "key": "c4"
+    },
+    {
+      "op": "commit",
+      "key": "c4"
+    },
+    {
+      "op": "prepare",
+      "key": "c4"
+    },
+    {
+      "op": "commit",
+      "key": "c4"
+    }
+  ]
+}
