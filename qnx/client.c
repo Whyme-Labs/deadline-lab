@@ -56,7 +56,10 @@ int main(int argc, char **argv) {
     uint64_t end = now_ns();
     (void)ConnectDetach(coid);
     printf("{\"id\":%" PRIu64 ",\"status\":%d,\"errno\":%d,\"reply_result\":%u,"
-           "\"elapsed_ns\":%" PRIu64 "}\n", a[3], status, saved_errno, reply.result, end-start);
+           "\"reply_version\":%u,\"reply_id\":%" PRIu64 ",\"epoch\":%" PRIu64 ","
+           "\"issued_ns\":%" PRIu64 ",\"expires_ns\":%" PRIu64 ",\"elapsed_ns\":%" PRIu64 "}\n",
+           a[3], status, saved_errno, reply.result, reply.version, reply.id, a[2],
+           request.command.issued_ns, request.command.expires_ns, end-start);
     /* Expected timeout is an observation, not an infrastructure exit failure. */
     return 0;
 }

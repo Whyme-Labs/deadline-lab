@@ -1,102 +1,121 @@
 # Deadline Lab
 
-A recovery bug-to-regression workbench. Generate a failure sequence, observe what the target actually does, reduce the sequence, and export a test a developer can keep.
+Find a recovery or ordering failure, observe the effect, reduce the failing sequence, and export a regression test.
 
-**v0.1.0 is a local engineering prototype.** The C controller, process fault runner, virtual plant, independent checker, reducer and regression exporter have been executed on Linux. The QNX 8 cancellation canary is source only. No QNX build, QNX target execution, physical motor test or production bug discovery is claimed.
+**v0.2.0 is an engineering prototype, not a competition-ready release.** The C fixture and an independently authored, unmodified nginx HTTP/file server have run on Linux. The native QNX source now has a separate effect observer and a shared reduction entry point, but has not compiled or executed on QNX. No physical actuator, production vulnerability or safety certification is claimed.
 
-## Run it
+## Run the local checks
 
-Requirements: Linux, Python 3.10 or newer, CMake 3.16 or newer, and a C11 compiler. The workbench uses only the Python standard library. No account, API key, network service, Python package download or GPU is required for the Linux path.
+Requirements: Linux, Python 3.10 or newer, CMake 3.16 or newer, and a C11 compiler. No Python package installation, account, GPU or API key is needed.
 
 ```sh
 ./scripts/verify-local.sh
 ```
 
-This creates a fresh local output directory and runs the C checks, Python tests and exported regression suite. There is no remote CI workflow in this repository.
-
-To generate a larger experiment:
+The independent-target checks additionally require a locally installed nginx with its DAV module. They use a new foreground process, loopback-only sockets and files beneath the selected output directory. They do not reload or change an existing nginx service.
 
 ```sh
-python3 -S -m deadline_lab campaign --out artifacts/campaign --per-split 40
+./scripts/verify-external.sh
 ```
 
-Open `artifacts/campaign/report.html` in a browser. The offline viewer contains recorded results, a filterable campaign table and reduced witnesses. An interrupted campaign can continue with `--resume`; completed run artifacts are checked against their hashes, scenario and binary before reuse.
+The latter returns 77 when the optional target is absent, not a passing result. `verify-local.sh` skips optional nginx execution tests when nginx is absent. A successful core-only check does not close the independent-target gate.
 
-To demonstrate a bug and its rejection:
+## See the newly validated failure
+
+An expiry guard is not an ordering guard. Both requests can still be valid when a delayed older request overwrites a newer value.
 
 ```sh
-# Exit 1 is expected: the deliberately flawed fixture authorises an expired command.
-python3 -S -m deadline_lab run examples/expiry.json \
-  --mode omit_expiry --out artifacts/expiry-broken
+# Expected exit 1. The older valid request overwrites the newer file value.
+python3 -S -m deadline_lab external-run examples/external/reordering.json \
+  --policy deadline --out artifacts/reordering-broken
 
-# Exit 0 is expected: the reference rejects it and still accepts the healthy probe.
-python3 -S -m deadline_lab run examples/expiry.json \
-  --mode reference --out artifacts/expiry-reference
+# Expected exit 0. The gateway also checks command sequence order.
+python3 -S -m deadline_lab external-run examples/external/reordering.json \
+  --policy fenced --out artifacts/reordering-fixed
 
-# Turn the reduced failures into a normal regression gate, with JUnit output.
-python3 -S -m deadline_lab regress regressions/suite.json \
-  --out artifacts/regressions --verify-mutants
+# Execute the reduced cases as normal regression checks, including negative controls.
+python3 -S -m deadline_lab external-regress regressions/external/suite.json \
+  --out artifacts/external-regressions --sensitivity
 ```
 
-`run` exits 0 for PASS, 1 for FAIL and 2 for INCONCLUSIVE or an input/infrastructure error. `regress` exits 0 only when its expectations hold. A deliberately broken fixture is expected to fail; the sensitivity check treats that as success for the test harness. The candidate implementation itself must pass.
+Output directories must not already exist. Each run includes a healthy write so rejecting everything cannot pass. The checker reads the bytes nginx wrote rather than accepting an HTTP success response as proof of the effect.
 
-## What is implemented
+This is not an nginx flaw. The gateway policies, test requirements and cooperative delay hooks are ours. nginx supplies independently authored HTTP processing and file effects. This validates reuse of the workbench beyond the original C fixture, not discovery of an unknown external bug or native QNX portability of nginx.
 
-The portable C core tracks immutable commands, authority generations, expiry, acknowledged cancellation and per-session deduplication. It has bounded storage and rejects new commands when that storage is full instead of forgetting old effects or cancellations.
+For the complete external campaign, reduction and offline report:
 
-The Linux runner starts only its own C workers and a separate virtual-plant process. It uses actual SIGSTOP/SIGCONT and SIGKILL/restart operations. Explicit test hooks model delayed delivery and an effect whose acknowledgement is lost. It never accepts an external PID or shell command from a generated scenario.
+```sh
+python3 -S -m deadline_lab external-campaign \
+  --repetitions 5 --out artifacts/external-campaign
+```
 
-The plant observes effect messages on a separate pipe and owns the simulated integer state. It does not import the controller or its mutation logic. A separate Python checker compares those effects against issued commands and recorded lifecycle actions. It does not accept a success reply as proof that the effect was correct.
+Open the generated `report.html`. Missing, altered, reordered or incomplete evidence produces INCONCLUSIVE. Hashes detect accidental corruption, not adversarial forgery. Recheck a saved run with:
 
-The generator combines an authored, bounded action grammar using fixed seeds. It is not coverage-guided fuzzing. The reducer re-executes real processes and preserves a selected violated property. Every accepted reduction runs twice, and each final witness is replayed five times against the flawed and reference implementations in the recorded campaign.
+```sh
+python3 -S -m deadline_lab external-recheck artifacts/reordering-fixed
+```
 
-The exporter writes standalone JSON scenarios, a regression-suite descriptor and JUnit results. The reference must accept an independent healthy command after each scenario. A reject-everything implementation fails that check.
-
-## Recorded checkpoint
-
-See `docs/progress-2026-11-09.md` for the complete result and limits. The delivered evidence package contains:
+## What ran in the recorded v0.2.0 checkpoint
 
 | Check | Observed result |
 | --- | --- |
-| Main campaign | 80 generated histories across 6 implementations, 480 scenario executions |
-| Reference implementation | 80 PASS, 0 FAIL, 0 INCONCLUSIVE; 301 observed effects |
-| Seeded fault families | All four families detected in discovery and held-out seed sets |
-| Reduced witnesses | Four witnesses with 4, 4, 4 and 5 actions |
-| Final witness replays | Each flawed/reference pair reproduced the expected result 5 times each |
-| Python workbench tests | 28 passed |
-| Portable C checks | 1,052 assertions passed |
-| Sanitizer checks | C test executable plus 6 scenario executions, no diagnostics observed |
-| Exported regression suite | 8 expected outcomes observed, including mutant sensitivity checks |
-| QNX native gate | NOT RUN; qcc and QEMU were absent from PATH in this environment |
+| Python unit/integration suite | 59 passed in this environment, including optional nginx execution |
+| Portable C tests | 1,052 core assertions and 9 effect-pipe assertions passed |
+| Independent-target campaign | 10 parameterised histories across 4 policies, 40 runs |
+| Timeout-only policy | 10 failed application contracts |
+| Expiry-only policy | 5 passed expiry cases, 5 failed still-valid reordering cases |
+| Expiry plus sequence fence | 10 passed, no inconclusive run |
+| Reject-everything control | 10 failed healthy-progress checks |
+| Reduced external witnesses | 7 to 3 actions and 6 to 3 actions |
+| Witness replay | Each bad/good pair reproduced its expected outcome 5 times |
+| External regression suite | All 4 expectations met; intentionally regressed candidate correctly failed |
+| Offline evidence recheck | All 68 retained final external run bundles reproduced their verdict/properties |
+| Sanitizers | Both C test executables and 6 process scenarios, no diagnostics observed |
+| Native QNX gate | NOT RUN; both compiler and target entry points returned 77 |
 
-These counts describe bounded synthetic experiments. They are not a safety certification, a motor-performance benchmark or a numerical probability of winning a competition.
+The 40 runs are not 40 distinct applications or a statistical estimate of general detection accuracy. The 68 rechecks include final campaign, response-loss controls, witness replays and regression runs. They do not add 68 new executions. Intermediate reducer trials are executed but not all retained as artifact bundles.
 
-## QNX-specific work
+The inherited v0.1.0 campaign remains in `evidence/campaign-v1`. Its 480 runs are historical results, not freshly rerun native experiments. The original eight regression expectations still pass after this revision.
 
-`qnx/server.c` and `qnx/client.c` form a native cancellation canary using actual QNX APIs, including `MsgReceive`, `MsgSend`, `TimerTimeout`, `_NTO_CHF_UNBLOCK`, `MsgInfo` and `MsgError`. They are guarded against compilation as a pretend Linux implementation. There are no vendored QNX headers, binaries, images or license files.
+## Original process-fault workflow
 
 ```sh
-# Run only after sourcing a properly licensed QNX SDK environment.
-./scripts/build-qnx.sh
-
-# On a QNX target with Python 3 and the built executables:
-python3 scripts/qnx-canary.py --bin ./build-qnx --out native-results
+python3 -S -m deadline_lab run examples/expiry.json \
+  --mode omit_expiry --out artifacts/expiry-broken
+python3 -S -m deadline_lab run examples/expiry.json \
+  --mode reference --out artifacts/expiry-reference
+python3 -S -m deadline_lab regress regressions/suite.json \
+  --out artifacts/core-regressions --verify-mutants
 ```
 
-The build helper exits 77 when qcc is unavailable. The canary runner exits 77 and reports NOT_RUN outside QNX. Neither condition is reported as a passed native test. Exact setup, permission requirements and acceptance evidence are in `docs/qnx-native-gate.md`.
+This path operates compiled C workers and a separate integer-state observer. Actual suspension, resumption and termination supplement explicit delivery and response-loss hooks. It checks generation fencing, expiry, acknowledged cancellation, bounded deduplication and healthy progress. It does not model motor electrical or mechanical dynamics.
 
-## Project map
+The shared reducer accepts an adapter runner and a validator. It repeats candidate failures and audits one-action deletions. Its claim is grammar-constrained deletion-1-minimality, not a globally shortest sequence, coverage-guided fuzzing or exact scheduling replay.
 
-| Location | Purpose |
-| --- | --- |
-| `include/`, `src/` | Portable C contract and real-process fixture |
-| `deadline_lab/` | Scenario grammar, runner, plant, checker, reducer, export and report |
-| `qnx/` | Unvalidated native QNX cancellation canary and toolchain file |
-| `tests/` | Core and workbench regression tests |
-| `examples/`, `regressions/` | Readable manual examples and automatically reduced tests |
-| `docs/` | Architecture, evidence boundaries, source references and submission gates |
-| `evidence/` | Recorded campaign and validation outputs in the delivered package |
+## Native QNX gate
 
-## What remains
+An appropriately licensed SDK and a real QNX target remain required. No proprietary SDK headers, binaries, target images or licence material are included.
 
-Compile and run the native canary on QNX 8. Integrate its transport and effect observations into the generic reducer. Exercise an independently authored QNX application. Verify a fresh developer can reproduce a useful failure without us operating the environment. Those are the next competitive evidence gates, not another round of interface decoration.
+```sh
+# On a supported development host after sourcing the licensed SDK environment:
+./scripts/build-qnx.sh
+
+# On the QNX target with Python 3, this source package and compiled binaries:
+python3 -S scripts/qnx-canary.py --bin ./build-qnx --out native-results --repetitions 5
+
+# Only after a native failure actually reproduces:
+python3 -S scripts/qnx-reduce.py examples/native/unblock.json \
+  --bin ./build-qnx --out native-reduction
+```
+
+The server now delivers virtual effects through a dedicated pipe to a separate observer. The checker cross-checks those effects against client results, actual unblock activation and server lifecycle events. A missing observer, missing activation or unclean shutdown cannot be counted as a successful cancellation test. Fourteen offline checker/guard tests use records explicitly labelled synthetic; they do not emulate QNX APIs or establish native compatibility.
+
+See `docs/qnx-native-gate.md` for the precise platform semantics and remaining review work.
+
+## Evidence limits and next decision
+
+An expired dispatch, an expired physical action and an unknown outcome after a lost response are different problems. This version does not conflate them. The HTTP fence only governs admission at one serial gateway. It cannot retract an already dispatched operation, establish a hard backend commit deadline, or provide durable exactly-once physical actions.
+
+The next competition-critical gate is actual QNX compilation and repeated native observations, followed by a fresh developer's reproduction trial. A tested independent Linux backend is progress, but it does not substitute for either gate.
+
+See `docs/progress-v0.2.0.md`, `docs/external-target.md`, `docs/submission-gates.md` and `docs/references.md`. All work remains local. No remote repository, CI, installation, purchase or deployment is performed by the verification scripts.

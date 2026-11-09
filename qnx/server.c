@@ -7,6 +7,9 @@
 #endif
 #define _QNX_SOURCE 1
 #include "wire.h"
+#include "dl_effect.h"
+#include <limits.h>
+#include <signal.h>
 #include <errno.h>
 #include <inttypes.h>
 #include <stdbool.h>
@@ -16,6 +19,9 @@
 #include <sys/neutrino.h>
 #include <time.h>
 #include <unistd.h>
+
+static volatile sig_atomic_t stop_requested = 0;
+static void request_stop(int signo) { (void)signo; stop_requested = 1; }
 
 static uint64_t now_ns(void) {
     struct timespec t;
@@ -31,13 +37,22 @@ static void event(FILE *log, const char *kind, uint64_t id, uint64_t stamp, int 
 }
 
 int main(int argc, char **argv) {
-    if (argc != 4 || (strcmp(argv[1], "reference") && strcmp(argv[1], "ignore_unblock"))) {
-        fprintf(stderr, "usage: dl-qnx-server reference|ignore_unblock EPOCH LOGFILE\n"); return 64;
+    if (argc != 5 || (strcmp(argv[1], "reference") && strcmp(argv[1], "ignore_unblock"))) {
+        fprintf(stderr, "usage: dl-qnx-server reference|ignore_unblock EPOCH LOGFILE EFFECT_FD\n"); return 64;
     }
     char *end = NULL;
     errno = 0;
     uint64_t epoch = strtoull(argv[2], &end, 10);
     if (errno || !epoch || *end || argv[2][0] == '-') return 64;
+    errno = 0;
+    end = NULL;
+    long effect_fd_raw = strtol(argv[4], &end, 10);
+    if (errno || !*argv[4] || *end || effect_fd_raw < 0 || effect_fd_raw > INT_MAX) return 64;
+    int effect_fd = (int)effect_fd_raw;
+    signal(SIGPIPE, SIG_IGN);
+    signal(SIGTERM, request_stop);
+    signal(SIGINT, request_stop);
+    int exit_status = 0;
     bool ignore_unblock = strcmp(argv[1], "ignore_unblock") == 0;
     FILE *log = fopen(argv[3], "wx");
     if (!log) { perror("log creation"); return 73; }
@@ -51,7 +66,7 @@ int main(int argc, char **argv) {
     printf("READY %ld %d %" PRIu64 "\n", (long)getpid(), chid, epoch);
     fflush(stdout);
     event(log, "start", 0, started, ignore_unblock);
-    while (now_ns() - started < UINT64_C(30000000000)) {
+    while (!stop_requested && now_ns() - started < UINT64_C(30000000000)) {
         if (pending > 0 && now_ns() >= due) {
             struct _msg_info info;
             if (MsgInfo(pending, &info) == -1) {
@@ -64,7 +79,7 @@ int main(int argc, char **argv) {
                 /* This is a pre-commit check, not processing the pulse itself.
                  * Use explicit ECANCELED, never MsgError(...,-1) here. */
                 if (MsgError(pending, ECANCELED) == -1 && errno != ESRCH) {
-                    perror("MsgError"); break;
+                    perror("MsgError"); exit_status = 70; break;
                 }
                 event(log, "cancel_precommit", active.id, now_ns(), ECANCELED);
                 dl_abandon(&state); pending = 0; continue;
@@ -72,11 +87,17 @@ int main(int argc, char **argv) {
             dl_command effect;
             uint64_t stamp = now_ns();
             dl_result r = dl_commit(&state, active.id, stamp, &effect);
-            if (r == DL_APPLY) event(log, "effect", effect.id, stamp, effect.delta);
+            if (r == DL_APPLY) {
+                /* Effect is delivered to a separate observer, never inferred from reply alone. */
+                if (dl_emit_effect(effect_fd, &effect, epoch, active.id, stamp) != 0) {
+                    perror("effect pipe"); exit_status = 74; break;
+                }
+                event(log, "effect", effect.id, stamp, effect.delta);
+            }
             else event(log, "reject", active.id, stamp, (int)r);
             dl_qnx_reply reply = {DL_SCHEMA, (uint32_t)r, active.id};
             if (MsgReply(pending, 0, &reply, sizeof(reply)) == -1 && errno != ESRCH) {
-                perror("MsgReply"); break;
+                perror("MsgReply"); exit_status = 70; break;
             }
             pending = 0;
             continue;
@@ -91,18 +112,18 @@ int main(int argc, char **argv) {
             if (wait_ns > UINT64_C(100000000)) wait_ns = UINT64_C(100000000);
         }
         if (TimerTimeout(CLOCK_MONOTONIC, _NTO_TIMEOUT_RECEIVE, NULL, &wait_ns, NULL) == -1) {
-            perror("TimerTimeout"); break;
+            perror("TimerTimeout"); exit_status = 70; break;
         }
         rcvid_t rcvid = MsgReceive(chid, &message, sizeof(message), &info);
         if (rcvid == -1) {
             if (errno == ETIMEDOUT || errno == EINTR) continue;
-            perror("MsgReceive"); break;
+            perror("MsgReceive"); exit_status = 70; break;
         }
         if (rcvid == 0) {
             if (message.pulse.code == _PULSE_CODE_DISCONNECT) {
                 /* Mandatory release of the server-side connection identifier. */
                 if (ConnectDetach(message.pulse.scoid) == -1 && errno != ESRCH) {
-                    perror("ConnectDetach"); break;
+                    perror("ConnectDetach"); exit_status = 70; break;
                 }
             } else if (message.pulse.code == _PULSE_CODE_UNBLOCK && pending > 0) {
                 /* One pending request only. Query its current kernel flag rather
@@ -114,7 +135,7 @@ int main(int argc, char **argv) {
                         (void)dl_cancel(&state, active.id);
                         /* -1 is defined here because this handles an unblock pulse. */
                         if (MsgError(pending, -1) == -1 && errno != ESRCH) {
-                            perror("MsgError"); break;
+                            perror("MsgError"); exit_status = 70; break;
                         }
                         event(log, "cancel_ack", active.id, now_ns(), 0);
                         dl_abandon(&state); pending = 0;
@@ -141,5 +162,6 @@ int main(int argc, char **argv) {
     event(log, "end", 0, now_ns(), 0);
     (void)ChannelDestroy(chid);
     fclose(log);
-    return 0;
+    close(effect_fd);
+    return exit_status;
 }

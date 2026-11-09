@@ -21,3 +21,14 @@ Primary QNX documentation was retrieved on 9 November 2026. These sources justif
   https://qnx.devpost.com/rules
 
 The prior 9 November research memo remains a separate user-provided artifact. It is not copied into this source tree because it includes internal project-status material irrelevant to a public example.
+
+## v0.2.0 independent-target additions
+
+- R9. nginx DAV module. Documents supported PUT operations and file management. Used for an independent local effect target; no nginx defect is alleged.
+  https://nginx.org/en/docs/http/ngx_http_dav_module.html
+- R10. nginx command-line parameters. Documents `-p` for a private prefix, `-c` for a private configuration and `-V` for build identification.
+  https://nginx.org/en/docs/switches.html
+- R11. nginx core directives. Documents foreground/developer process settings. The lab runs its own foreground process, not an existing service.
+  https://nginx.org/en/docs/ngx_core_module.html
+
+R1, R3 and R4 were rechecked while extending the native observer path. No new platform execution evidence follows from that documentation review. An attempted libmodbus source download could not complete in this environment; no libmodbus source or executable was used in the delivered experiment.

@@ -1,0 +1,18 @@
+{
+  "adapter": "nginx-dav",
+  "cases": [
+    {
+      "name": "expiry",
+      "property": "expired_dispatch_effect",
+      "scenario": "expiry.json",
+      "sensitivity_policy": "timeout_only"
+    },
+    {
+      "name": "reordering",
+      "property": "superseded_effect",
+      "scenario": "reordering.json",
+      "sensitivity_policy": "deadline"
+    }
+  ],
+  "schema": 2
+}

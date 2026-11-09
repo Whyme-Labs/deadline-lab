@@ -1,0 +1,45 @@
+{
+  "schema": 2,
+  "adapter": "nginx-dav",
+  "name": "expiry-2000",
+  "seed": 2000,
+  "family": "expiry",
+  "actions": [
+    {
+      "op": "write",
+      "key": "setup",
+      "value": 29391,
+      "ttl_ms": 2000
+    },
+    {
+      "op": "wait",
+      "ms": 2
+    },
+    {
+      "op": "hold",
+      "key": "old",
+      "value": 3252,
+      "ttl_ms": 40
+    },
+    {
+      "op": "timeout",
+      "key": "old"
+    },
+    {
+      "op": "write",
+      "key": "new",
+      "value": 50368,
+      "ttl_ms": 2000
+    },
+    {
+      "op": "release",
+      "key": "old"
+    },
+    {
+      "op": "write",
+      "key": "trailing",
+      "value": 31096,
+      "ttl_ms": 2000
+    }
+  ]
+}

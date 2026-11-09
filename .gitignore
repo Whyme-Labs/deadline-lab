@@ -9,3 +9,8 @@ __pycache__/
 *.key
 # Raw evidence is included in the local delivery archive, not committed or uploaded by CI.
 evidence/
+
+# Generated delivery metadata and optional source history.
+/MANIFEST.sha256
+/RELEASE.json
+/source-history.bundle

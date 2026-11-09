@@ -1,37 +1,57 @@
 # Native QNX gate
 
-Status on 9 November 2026: source scaffold only. No QNX compilation or execution took place. The local build helper exited 77 because qcc was absent. The native runner reported NOT_RUN on Linux. The environment record also found no QEMU executable on PATH; this says nothing about a separate remote desktop.
+Status on 9 November 2026, v0.2.0: native source and integration only. The build helper and target runner both exited 77 here. No QNX compile, target boot or native cancellation observation is claimed.
 
-## What the canary checks
+## Platform-specific question
 
-QNX documents a distinction between a client wanting to unblock and the server completing or cancelling an operation. With `_NTO_CHF_UNBLOCK`, a client that is already REPLY-blocked does not independently escape `MsgSend` merely because its timeout expires. The kernel sends an unblock pulse and the server must respond according to its operation semantics. [R1, R2]
+QNX documents a distinction between a client trying to unblock and the server completing or cancelling a received operation. With `_NTO_CHF_UNBLOCK`, a REPLY-blocked client does not necessarily escape `MsgSend` merely because its timeout expires. The server receives an unblock pulse and must handle its operation according to the service's contract. [R1, R2, R3]
 
-The canary declares a cancellable, simulated operation with a 150 ms pre-commit delay and a 25 ms client timeout. The reference responds to a valid pending unblock request by cancelling before its simulated effect. An explicitly named `ignore_unblock` mutant ignores that application policy. This is a deliberately faulty example, not a newly discovered QNX flaw, and ignoring a pulse is not universally wrong for every service. [R1, R2]
+The source canary specifies a cancellable virtual operation with a 150 ms pre-commit delay and a 25 ms client timeout. The reference intends to cancel a pending operation before its virtual effect when the kernel reports an unblock request. The `ignore_unblock` variant deliberately omits that application policy. Ignoring a pulse is not universally incorrect for every QNX service, and the example is not an operating-system vulnerability.
 
-The receiver uses `rcvid_t`, a union large enough for a pulse and the wire message, and checks message lengths. It queries the kernel's current `_NTO_MI_UNBLOCK_REQ` state through `MsgInfo`, rather than trusting a late pulse to refer to a still-valid operation. It never replies to the pulse itself. `MsgError(rcvid,-1)` is restricted to the pulse-handling path; the pre-commit polling path uses explicit ECANCELED. [R3, R4, R5]
+## Changes since v0.1.0
 
-A second healthy call must still create an effect. A timeout that happened while SEND-blocked, before the server received the request, is not valid evidence for the REPLY-blocked unblock scenario. The target script marks missing fault activation INCONCLUSIVE.
+The shared C effect-pipe emitter is used by the Linux worker and the QNX server source. A separate observer process records virtual state transitions. Native success cannot be inferred only from the server's own `effect` log or its reply.
 
-## Required access
+The source runner now requires a clean server shutdown, complete observer trace, positive healthy operation and actual unblock activation. It checks client identity and reply ABI fields. The server source has a graceful termination path and nonzero fatal-error exits.
 
-An appropriately licensed QNX SDP 8 installation and a booted QNX 8 target are required. QEMU is a possible target, not a substitute for a licensed image. This package does not download or redistribute platform components and does not accept license terms on the user's behalf.
+The native adapter exposes the same scenario-runner interface as the shared reducer. `scripts/qnx-reduce.py` will reduce and replay a genuine native failure once the required target exists. That connection is implemented in source; it has not been executed natively.
 
-The SDK environment must provide `qcc`, `QNX_HOST` and `QNX_TARGET`. The toolchain variant must exist in that SDK, as listed by `qcc -V`. The default is `gcc_ntox86_64`; an AArch64 target requires the corresponding available variant. The development container's Debian Linux tests are not a claim of supported QNX host status.
+The offline checker has fourteen local fixture/guard tests. The fixtures explicitly say `synthetic-unit-test`, never `native-qnx`. They validate record handling, not the correctness of the QNX API calls.
 
-The target must permit this lab process to create a public channel. QNX documents a public-channel process-manager ability requirement. A failure here is a setup blocker; the scaffold does not escalate privileges or modify the target's security policy. [R2]
+## Build and execute
 
-The Python native runner is optional convenience and requires Python 3 on the target. The native client and server can also be run manually. The current canary is not wired into the generic fault generator or reducer; that integration is open work.
+On a supported development host, obtain an appropriately licensed QNX SDP 8 environment through the official route, source its environment and run:
 
-## Acceptance record
+```sh
+./scripts/build-qnx.sh
+```
 
-Record the SDK and OS versions, target image provenance, build flags, compiler diagnostics and source revision. Capture actual server process/channel IDs from startup, client observations and server event logs. Repeat the reference/mutant case without editing delays to make a video look successful. Record activation failures and timing variation rather than dropping unsuccessful runs.
+The SDK must provide `qcc`, `QNX_HOST` and `QNX_TARGET`. The default variant is `gcc_ntox86_64`; use an SDK-supported AArch64 variant for that target. The source package does not accept licence terms, download proprietary components or fabricate headers.
 
-The required outcomes are a real observed unblock condition, no cancelled effect in the reference, a visible effect in the deliberately faulty fixture, successful healthy work afterwards and no unresolved client blockage. The external runner bounds both startup and client completion. It kills only its own server process during cleanup.
+On a booted QNX target with Python 3, copy this source package and its correctly built binaries, then run:
 
-Run a target-side observer or instrument the actual simulated-effect boundary before claiming the complete independent-observation workflow. The canary log is component instrumentation, not yet the separate observer used by the Linux path. Integrate trace completeness and regression export before treating this as submission-quality native tooling.
+```sh
+python3 -S scripts/qnx-canary.py --bin ./build-qnx --out native-results --repetitions 5
+python3 -S scripts/qnx-reduce.py examples/native/unblock.json \
+  --bin ./build-qnx --out native-reduction
+```
 
-## Remaining native engineering
+The second command is only useful after the first produces genuine, repeated native observations. A non-QNX host returns NOT_RUN. Missing native binaries also return NOT_RUN. Neither is a passed test.
 
-Compile-time API/ABI corrections may still be required. The source has not been syntax-checked using fabricated QNX headers, because that would not establish compatibility. Review disconnect behaviour, queued pulses, resource limits, receipt identifier reuse, simultaneous client requests and response/commit races on the actual target. The current single-pending-slot implementation simplifies concurrency and rejects extra requests as busy.
+## API details to verify on target
 
-Do not infer a hard-real-time latency bound, motor safety property, production readiness or verified SDK compatibility from the source alone.
+The receiver uses `rcvid_t`, a union large enough for a pulse and message, and checks message lengths. It checks the current `_NTO_MI_UNBLOCK_REQ` state with `MsgInfo` rather than treating a queued pulse as an unconditional cancellation of a reused receipt identifier. A pulse itself never receives `MsgReply`. `MsgError(rcvid,-1)` is restricted to handling an unblock pulse; the pre-commit path uses ECANCELED. [R3, R4, R5]
+
+Public-channel permissions must already be authorised. No escalation or security-policy modification is attempted. [R2]
+
+The single-pending-request server is intentionally small. Real target work still needs ABI/compiler corrections, timer/signal observations, disconnect and identifier-reuse cases, evidence-loss behaviour, and concurrency review. The local Linux tests do not establish any of these properties.
+
+Checking for a cancellation request and committing an effect are not a universal atomic operation. A cancellation that races with commit needs an explicit decision boundary and application semantics. The wide-delay canary is a bounded test, not a proof that every cancellation beats every physical action.
+
+## Acceptance evidence
+
+Record the SDK version, target OS/image, toolchain variant, compiler output, source and binary hashes, public-channel setup, client results, actual kernel-unblock observations, observer effects and clean shutdown. Require all repeated reference/mutant comparisons to activate the intended condition. A SEND-block timeout before server receipt is INCONCLUSIVE for a REPLY-blocked cancellation test.
+
+Use the recorded native data to decide whether to proceed. Do not infer a hard-real-time bound, physical motor performance or platform compatibility from source-only integration.
+
+References R1 through R7 are in `docs/references.md`.

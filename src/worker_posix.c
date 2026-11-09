@@ -1,5 +1,6 @@
 #define _POSIX_C_SOURCE 200809L
 #include "dl_core.h"
+#include "dl_effect.h"
 #include <errno.h>
 #include <inttypes.h>
 #include <limits.h>
@@ -36,18 +37,6 @@ static int parse_delta(const char *s, int32_t *value) {
     return 0;
 }
 
-static int emit_effect(int fd, const dl_command *e, uint64_t epoch,
-                       uint64_t attempt, uint64_t commit_ns) {
-    char line[256];
-    int n = snprintf(line, sizeof(line), "E %" PRIu64 " %" PRIu64 " %" PRIu64
-        " %" PRIu64 " %" PRIu64 " %" PRId32 "\n",
-        e->id, e->epoch, epoch, attempt, commit_ns, e->delta);
-    if (n < 0 || (size_t)n >= sizeof(line)) return -1;
-    /* One small write to a dedicated pipe. A failed/partial write is fatal. */
-    ssize_t wrote;
-    do { wrote = write(fd, line, (size_t)n); } while (wrote < 0 && errno == EINTR);
-    return wrote == n ? 0 : -1;
-}
 
 int main(int argc, char **argv) {
     if (argc != 4) {
@@ -90,7 +79,7 @@ int main(int argc, char **argv) {
                 dl_command effect;
                 uint64_t commit_ns = monotonic_ns();
                 result = dl_commit(&state, id, commit_ns, &effect);
-                if (result == DL_APPLY && emit_effect(effect_fd, &effect, epoch, attempt, commit_ns)) {
+                if (result == DL_APPLY && dl_emit_effect(effect_fd, &effect, epoch, attempt, commit_ns)) {
                     perror("effect pipe"); return 74;
                 }
                 /* L is an explicit test hook: suppress the acknowledgement. */

@@ -1,0 +1,25 @@
+{
+  "actions": [
+    {
+      "key": "old",
+      "op": "hold",
+      "ttl_ms": 5000,
+      "value": 3252
+    },
+    {
+      "key": "new",
+      "op": "write",
+      "ttl_ms": 2000,
+      "value": 50368
+    },
+    {
+      "key": "old",
+      "op": "release"
+    }
+  ],
+  "adapter": "nginx-dav",
+  "family": "reordering",
+  "name": "reordering-2000",
+  "schema": 2,
+  "seed": 2000
+}

@@ -13,3 +13,4 @@ OUT="artifacts/verify-$(date -u +%Y%m%dT%H%M%SZ)-$$"
 python3 -S -m deadline_lab regress regressions/suite.json --out "$OUT" --verify-mutants
 printf '\nLocal verification complete. Regression evidence: %s\n' "$OUT"
 printf 'QNX compilation/execution is a separate gate and was not run by this command.\n'
+printf 'Optional nginx execution tests are skipped when nginx is absent; verify-external.sh requires them.\n'

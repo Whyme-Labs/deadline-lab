@@ -1,0 +1,13 @@
+{
+  "schema": 2,
+  "adapter": "qnx-native",
+  "name": "unblock-before-effect",
+  "actions": [
+    {
+      "op": "call",
+      "work_ms": 150,
+      "timeout_ms": 25,
+      "expect_unblock": true
+    }
+  ]
+}

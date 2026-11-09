@@ -1,0 +1,23 @@
+{
+  "actions": [
+    {
+      "key": "old",
+      "op": "hold",
+      "ttl_ms": 40,
+      "value": 3252
+    },
+    {
+      "key": "old",
+      "op": "timeout"
+    },
+    {
+      "key": "old",
+      "op": "release"
+    }
+  ],
+  "adapter": "nginx-dav",
+  "family": "expiry",
+  "name": "expiry-2000",
+  "schema": 2,
+  "seed": 2000
+}
