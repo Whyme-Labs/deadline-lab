@@ -2,7 +2,26 @@
 
 Find a recovery or ordering failure, observe the effect, reduce the failing sequence, and export a regression test.
 
-**v0.4.0 is an engineering prototype, not a competition-ready release.** The C fixture and an independently authored, unmodified nginx HTTP/file server have run on Linux. The native QNX source now has a separate effect observer and a shared reduction entry point, but has not compiled or executed on QNX. No physical actuator, production vulnerability or safety certification is claimed.
+**v0.5.0 is an engineering prototype, not a competition-ready release.** The C fixture and an independently authored, unmodified nginx HTTP/file server have run on Linux. The native QNX source now has a separate effect observer and a shared reduction entry point, but has not compiled or executed on QNX. No physical actuator, production vulnerability or safety certification is claimed.
+
+## New in v0.5.0
+
+An offline handoff route now prepares a binary-only target folder and keeps a
+trusted request on the host. Run the folder on the target and bring back three
+capture files. The importer checks them against the prepared binary identities,
+source metadata and request before applying the existing native checker.
+No SSH connection or target Python is required by this route. The target wrapper
+requires a POSIX shell and `mkdir`.
+
+```sh
+./scripts/verify-offline.sh
+```
+
+The complete prepare/run/import transport has been exercised with Linux process
+fixtures, including relocation and wrong-build detection. This is not QNX
+execution. A portable import is always `TRANSPORT_ONLY`. The actual QNX SDK and a
+booted target are still required. Read [offline native run](docs/offline-native-run.md)
+for the exact handoff. One offline case does not close the complete acceptance gate.
 
 ## New in v0.4.0
 

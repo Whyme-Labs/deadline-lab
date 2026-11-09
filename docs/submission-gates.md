@@ -26,3 +26,13 @@ Do not claim invention of fault injection, tracing, watchdogs, delta debugging o
 ## v0.4 update
 
 Host-driven C collection removes the target Python dependency in the new execution path. Real POSIX process-I/O tests cover collection, framing and direct-child cleanup. The full host-to-QNX acceptance success path, live SSH, an external developer trial and the actual QNX compilation/runtime gate remain open. These local tests are not evidence of native cancellation semantics or hardware safety.
+
+## v0.5 update
+
+The offline handoff, relocation and import transport has been exercised with real
+Linux processes. It rejects a changed target executable against the original host
+request. Portable records cannot earn a native verdict. No new application bug or
+QNX behaviour has been established. The QNX SDK and booted target are now the only
+platform inputs needed for the first native capture; live SSH and target Python
+are optional. Repeated comparisons, reduction, regression sensitivity and an
+independent developer trial remain separate open requirements.

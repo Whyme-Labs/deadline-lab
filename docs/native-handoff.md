@@ -1,3 +1,5 @@
+> v0.5: a source-free target folder can now be run and imported without SSH. See [offline native run](offline-native-run.md). Actual native compilation/execution is still required.
+
 > v0.4 update: the host-driven C collector path removes Python from the target requirements. See [host-driven capture](host-driven-capture.md). The original on-target Python workflow below remains available. Native execution is still unverified in this environment.
 
 # Native QNX handoff

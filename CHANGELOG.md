@@ -1,5 +1,16 @@
 # v0.4.0, 10 November 2026
 
+## 0.5.0 - 10 November 2026
+
+- Add a prepared, relocated offline capture route without target Python or SSH.
+- Pin expected binary bytes and source/build records in an original host request.
+- Keep offline transfer completion separate from host-observed process cleanup.
+- Reuse native materialisation and checking rather than introduce a second oracle.
+- Exercise real Linux handoffs and reject mixed requests, changed executables,
+  partial results, diagnostics and existing output paths.
+- Native compilation, target execution and outside-developer validation remain open.
+
+
 - Add a dependency-light C collector and host-side stream import. No Python or helper commands on the target for this path.
 - Preserve raw effect observations and compare derived evidence against them during offline native rechecks.
 - Add an optional existing-SSH transport with strict host-key checks. Live SSH and native QNX remain unexecuted.

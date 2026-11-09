@@ -1,3 +1,5 @@
+> v0.5 adds an [offline handoff](offline-native-run.md) for targets without SSH. The original live route below remains available.
+
 # Host-driven capture with a minimal target
 
 ## Scope and status

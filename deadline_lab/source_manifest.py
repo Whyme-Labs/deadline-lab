@@ -13,7 +13,9 @@ REQUIRED = {'scripts/build-qnx.sh', 'scripts/qnx-canary.py', 'scripts/qnx-reduce
             'scripts/verify-native.sh', 'scripts/package-release.py', 'qnx/abi_probe.c',
             'deadline_lab/native_build.py', 'deadline_lab/native_gate.py', 'deadline_lab/native_workflow.py',
             'src/capture.c', 'src/sha256.c', 'include/dl_sha256.h', 'deadline_lab/capture.py',
-            'deadline_lab/capture_campaign.py', 'scripts/verify-capture.sh', 'tests/test_capture.py'}
+            'deadline_lab/capture_campaign.py', 'scripts/verify-capture.sh', 'tests/test_capture.py',
+            'deadline_lab/offline.py', 'scripts/verify-offline.sh', 'scripts/rehearse-offline.py',
+            'tests/test_offline.py', 'docs/offline-native-run.md'}
 
 
 def source_paths(root: Path) -> list[Path]:

@@ -45,11 +45,11 @@ def create(root: Path, output: Path, evidence: bool = False, history: bool = Fal
                 selected[path.relative_to(root).as_posix()] = path.read_bytes()
     if history:
         selected['source-history.bundle'] = (root / 'source-history.bundle').read_bytes()
-    release = {'schema': 1, 'version': '0.4.0', 'source_files': len(source['files']),
+    release = {'schema': 1, 'version': '0.5.0', 'source_files': len(source['files']),
                'source_set_sha256': source['source_set_sha256'],
                'includes_evidence': evidence, 'includes_source_history': history,
                'native_qnx_gate': 'NOT_ESTABLISHED',
-               'note': 'Read evidence/v0.4.0 for current validation. No SDK or compiled binaries included.'}
+               'note': 'Read evidence/v0.5.0 for current validation. No SDK or compiled binaries included.'}
     selected['RELEASE.json'] = (json.dumps(release, indent=2) + '\n').encode()
     hashes = {name: hashlib.sha256(data).hexdigest() for name, data in sorted(selected.items())}
     selected['MANIFEST.sha256'] = ''.join(f'{d}  {n}\n' for n, d in hashes.items()).encode()

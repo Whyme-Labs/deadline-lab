@@ -276,10 +276,19 @@ def native_material(files: dict[str, bytes], invocation: dict) -> dict:
 def verify_imported(out: Path) -> None:
     """Called by the ordinary native checker, also during historical rechecks."""
     required = {'transport.stdout', 'transport.stderr', 'transport.json', 'invocation.json'}
+    invocation = loads((out / 'invocation.json').read_bytes())
+    offline = invocation.get('transport') == 'offline-file'
+    if offline:
+        required |= {'offline-request.json', 'capture.exit'}
     verify(out, required)
     transport = loads((out / 'transport.json').read_bytes())
-    if transport.get('exit') != 0 or transport.get('error') is not None or transport.get('launcher_reaped') is not True:
+    if transport.get('exit') != 0 or transport.get('error') is not None:
         raise ValueError('capture transport did not complete')
+    if offline:
+        from .offline import verify_offline_import
+        verify_offline_import(out, invocation, transport)
+    elif transport.get('launcher_reaped') is not True:
+        raise ValueError('capture launcher was not reaped')
     if (out / 'transport.stderr').read_bytes():
         raise ValueError('capture transport emitted diagnostics')
     files = decode_stream((out / 'transport.stdout').read_bytes())
@@ -296,6 +305,23 @@ def verify_imported(out: Path) -> None:
                 raise ValueError('normalized effects differ from raw target observations')
         elif loads((out / name).read_bytes()) != value:
             raise ValueError('normalized artifact differs from raw target observations: ' + name)
+
+
+def materialize_native(out: Path, files: dict[str, bytes], invocation: dict) -> None:
+    """Canonical import shared by live and offline transports, never a verdict."""
+    material = native_material(files, invocation)
+    for name, value in material.items():
+        if name == 'effects':
+            trace = TraceWriter(out / 'effects.jsonl')
+            try:
+                for row in value:
+                    trace.write(**row)
+            finally:
+                trace.close()
+        else:
+            write(out / name, value)
+    (out / 'observer.stderr').write_bytes(b'')
+    seal(out, sorted(p.name for p in out.iterdir() if p.is_file()))
 
 
 def run_native(scenario: dict, mode: str, out: Path, bin_dir: str, *, ssh: str | None = None) -> dict:
@@ -327,19 +353,7 @@ def run_native(scenario: dict, mode: str, out: Path, bin_dir: str, *, ssh: str |
         else:
             if observation['exit'] != 0 or observation['error'] or (out / 'transport.stderr').read_bytes():
                 raise ValueError('capture transport failed or was incomplete')
-            material = native_material(files, invocation)
-            for name, value in material.items():
-                if name == 'effects':
-                    trace = TraceWriter(out / 'effects.jsonl')
-                    try:
-                        for row in value:
-                            trace.write(**row)
-                    finally:
-                        trace.close()
-                else:
-                    write(out / name, value)
-            (out / 'observer.stderr').write_bytes(b'')
-            seal(out, sorted(p.name for p in out.iterdir() if p.is_file()))
+            materialize_native(out, files, invocation)
             from .adapters.qnx_native import evaluate
             result = evaluate(out)
     except FileNotFoundError as exc:
