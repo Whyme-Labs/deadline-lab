@@ -37,6 +37,17 @@ Read `docs/host-driven-capture.md` for exact commands and limits. The current re
 
 ## Run the local checks
 
+On macOS or Linux with a running Docker-compatible engine, run all four Linux
+verification workflows in an isolated Ubuntu container:
+
+```sh
+./scripts/verify-container.sh
+```
+
+The first run downloads the base image and build dependencies. Runtime tests use
+only container loopback networking and mount this project directory. This checks
+Linux behavior; it does not install the QNX SDK or establish native QNX execution.
+
 Requirements: Linux, Python 3.10 or newer, CMake 3.16 or newer, and a C11 compiler. No Python package installation, account, GPU or API key is needed.
 
 ```sh
@@ -168,4 +179,4 @@ An expired dispatch, an expired physical action and an unknown outcome after a l
 
 The next competition-critical gate is actual QNX compilation and repeated native observations, followed by a fresh developer's reproduction trial. A tested independent Linux backend is progress, but it does not substitute for either gate.
 
-See `docs/progress-v0.2.0.md`, `docs/external-target.md`, `docs/submission-gates.md` and `docs/references.md`. All work remains local. No remote repository, CI, installation, purchase or deployment is performed by the verification scripts.
+See `docs/progress-v0.2.0.md`, `docs/external-target.md`, `docs/submission-gates.md` and `docs/references.md`. The [competition preparation record](docs/competition-entry.md) contains the verified deadline and remaining submission work. Verification scripts do not publish a repository, trigger remote CI, purchase services or deploy to a target. The container helper installs Linux build dependencies inside its image.
