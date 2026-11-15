@@ -2,10 +2,12 @@
 
 ## Status
 
-The prepare, relocate, run and import workflow has been exercised with real Linux
-collector processes. The application programs in that rehearsal are explicitly
-portable process-I/O fixtures. They do not implement QNX IPC. A complete genuine
-QNX build, target capture and native import remain unexecuted.
+The v0.6.0 prepare/run/import route completed on the genuine QNX 8 AArch64
+QEMU target on 16 November 2026. The reference import passed; the authored
+`ignore_unblock` control failed `cancel_before_effect`. Both retained verified
+native provenance and healthy progress. SSH was used only to transfer folders
+and invoke the wrapper during this test; preparation and import themselves did
+not contact the target. Linux process-I/O rehearsals remain separate transport tests.
 
 This is an additional deployment route, not a new safety feature or a substitute
 for the native acceptance gate. The existing live SSH workflow remains available.
@@ -124,9 +126,9 @@ The test covers a relocated folder, a changed executable, a stalled child,
 truncated files, a missing completion record, diagnostics and a different host
 request. Intermediate binary handoffs are temporary and removed afterward.
 
-## Remaining blocker
+## Scope of the recorded result
 
-This environment has no authorised QNX SDK or booted QNX target. Native execution
-still requires those two inputs. SSH is no longer a requirement for collecting
-and importing the first native case. Documentation checks and portable runs do
-not replace genuine SDK compilation and native runtime observations.
+The offline pair establishes native capture and import for these two cases. The
+separate live collector acceptance run establishes repeated comparisons,
+reduction and regression sensitivity. The offline route still requires your own
+licensed SDK and target; no SDK or runtime is bundled with this project.

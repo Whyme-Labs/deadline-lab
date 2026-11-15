@@ -1,0 +1,12 @@
+{
+  "adapter": "qnx-native",
+  "cases": [
+    {
+      "name": "unblock-before-effect",
+      "property": "cancel_before_effect",
+      "scenario": "unblock.json",
+      "sensitivity_mode": "ignore_unblock"
+    }
+  ],
+  "schema": 3
+}

@@ -181,6 +181,22 @@ class NativeHandoffTests(unittest.TestCase):
 
 
 class DistributionTests(unittest.TestCase):
+    def test_package_does_not_promote_summary_only_native_claims(self):
+        spec=importlib.util.spec_from_file_location('dl_native_packager',ROOT/'scripts/package-release.py')
+        mod=importlib.util.module_from_spec(spec);spec.loader.exec_module(mod)
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp)/'source';root.mkdir()
+            for source in source_manifest.source_paths(ROOT):
+                p=root/source.relative_to(ROOT);p.parent.mkdir(parents=True,exist_ok=True)
+                p.write_bytes(source.read_bytes())
+            canary=root/'evidence'/'native'/'canary';canary.mkdir(parents=True)
+            (canary/'summary.json').write_text(json.dumps({
+                'schema':3,'qnx_executed':True,'repetitions':5,'runs':[], 'results':[]}))
+            out=Path(temp)/'unproven.zip'
+            with self.assertRaisesRegex(ValueError,'independent verification'):
+                mod.create(root,out,evidence=True,native_canary=canary)
+            self.assertFalse(out.exists())
+
     def test_manifest_contains_documented_build_helper(self):
         m=source_manifest.manifest(ROOT)
         self.assertIn('scripts/build-qnx.sh',m['files'])

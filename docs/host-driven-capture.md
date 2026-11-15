@@ -6,7 +6,7 @@
 
 Version 0.4 introduces a C collector so the QNX target no longer needs Python or the Python source tree for the new capture path. Python, the reducer and JUnit generation stay on the POSIX development host. The old on-target Python path remains available for compatibility.
 
-The portable collector has been compiled and exercised on Linux with separately named process-I/O fixtures. These fixtures do not implement QNX APIs. Native QNX compilation, target execution and an actual SSH session have not been exercised in the current environment. Passing a collector transport test cannot close the native acceptance gate.
+The v0.6.0 collector has compiled with QNX SDP 8 and completed native acceptance over SSH on a QNX 8 AArch64 QEMU target. Five reference/negative pairs, reduction, five regression replay pairs and the deliberately regressed candidate produced their expected results. See the [QNX codelab](qnx-codelab.md) and release evidence. The separately named Linux process-I/O fixtures remain portable transport tests; they do not implement QNX APIs.
 
 ## Target footprint
 
@@ -43,7 +43,7 @@ python3 -S -m deadline_lab.capture examples/native/unblock.json \
   --out artifacts/native-single
 ```
 
-The SSH transport uses batch mode, no pseudo-terminal and strict host-key checking. It does not accept new host keys, send passwords or construct an unquoted remote command. The alias may use the developer's existing SSH configuration. Live SSH invocation remains untested here. Local collector execution on a QNX system is available by omitting `--ssh`; in that case Python runs locally on the same machine as the collector.
+The SSH transport uses batch mode, no pseudo-terminal and strict host-key checking. It does not accept new host keys, send passwords or construct an unquoted remote command. The alias may use the developer's existing SSH configuration. The SSH route was exercised on the recorded QNX target. Local collector execution on a QNX system is available by omitting `--ssh`; in that case Python runs locally on the same machine as the collector.
 
 ## What the collector does
 

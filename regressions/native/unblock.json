@@ -1,0 +1,13 @@
+{
+  "actions": [
+    {
+      "expect_unblock": true,
+      "op": "call",
+      "timeout_ms": 30,
+      "work_ms": 200
+    }
+  ],
+  "adapter": "qnx-native",
+  "name": "native-cancel-with-surrounding-work",
+  "schema": 2
+}

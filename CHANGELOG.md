@@ -1,4 +1,12 @@
-# v0.4.0, 10 November 2026
+# Changelog
+
+## 0.6.0 - 16 November 2026
+
+- Compile with QNX SDP 8 and run the native collector on a QNX 8 AArch64 VM.
+- Complete repeated native comparisons, reduction, exported regression replays and the regressed-candidate check.
+- Add a tested QNX codelab, reduced native regression and current release evidence.
+- Independently verify raw native captures and their executable source identity before marking a release native-verified. Summary-only claims are rejected.
+- Retain the Linux, nginx and offline-transfer workflows. All defects demonstrated remain authored fixture or gateway policies.
 
 ## 0.5.0 - 10 November 2026
 
@@ -11,6 +19,8 @@
 - Native compilation, target execution and outside-developer validation remain open.
 
 
+## 0.4.0 - 10 November 2026
+
 - Add a dependency-light C collector and host-side stream import. No Python or helper commands on the target for this path.
 - Preserve raw effect observations and compare derived evidence against them during offline native rechecks.
 - Add an optional existing-SSH transport with strict host-key checks. Live SSH and native QNX remain unexecuted.
@@ -18,7 +28,7 @@
 - Add bounded real-process transport tests, digest known-answer tests and release-completeness requirements.
 - Retain all older native and Linux workflows. No claim of native compilation, physical actuator validation or contest readiness.
 
-# v0.3.0
+## 0.3.0
 
 - Restore the missing native build helper and verify source-archive completeness.
 - Bound startup line reads and reject oversized virtual-effect frames.
@@ -27,8 +37,6 @@
 - Add source-bound native build records, an actual-SDK ABI probe and a strict evidence gate.
 - Add the native acceptance-to-reduction-to-JUnit workflow. Native success remains unexecuted.
 - Add targeted tests, before/after reproductions and a fresh Linux/nginx revalidation.
-
-# Changes
 
 ## 0.2.0, 9 November 2026
 

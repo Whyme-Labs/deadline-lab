@@ -1,6 +1,10 @@
-# Native QNX gate, v0.3.0 update
+# Native QNX gate
 
-Current entry points and provenance requirements are in [native-handoff.md](native-handoff.md). The full native success path remains uncompiled and unexecuted here. The historical v0.2 source design below explains the API choices; its old default `build-qnx` directory is superseded by the explicit build-output directory selected by the current helper.
+**v0.6.0 status, 16 November 2026:** the genuine QNX SDP 8 build and QNX 8 AArch64 collector acceptance completed, including repeated comparisons, reduction, regression replay and rejection of the regressed candidate. See the [codelab](qnx-codelab.md) and [release evidence](https://github.com/Whyme-Labs/deadline-lab/releases/tag/v0.6.0).
+
+## Historical v0.3.0 design notes
+
+Current entry points and provenance requirements are in [native-handoff.md](native-handoff.md). At v0.3.0 the native path was uncompiled and unexecuted. The historical v0.2 source design below explains the API choices; its old default `build-qnx` directory is superseded by the explicit build-output directory selected by the current helper.
 
 The offline checker now requires the observed unblock to precede any effect before evaluating the intended cancellation property. A commit preceding the unblock is INCONCLUSIVE for this specific test, not evidence of a cancellation defect. A transport timeout alone still does not establish cancellation.
 
