@@ -40,6 +40,12 @@ These results test Linux processes, authored failure policies and evidence handl
 They do not establish QNX compilation, native timeout/unblock behavior, a production
 vulnerability, physical actuator safety, or an outside developer's reproduction.
 
+The [public source repository](https://github.com/Whyme-Labs/deadline-lab) is now
+available on its `main` branch. GitHub detects its MIT licence. The container
+verification command has also passed all four workflows with networking disabled
+during test execution. QNX account setup and the final competition submission are
+still pending.
+
 ## Entry text draft
 
 **Name:** Deadline Lab
@@ -101,7 +107,7 @@ resolve its cause and rerun instead of narrating it as a successful result.
    Follow [the native handoff](native-handoff.md) and [collector workflow](host-driven-capture.md).
 4. Complete repeated native comparisons, reduction, regression export and the
    intentionally regressed-candidate check. Preserve original logs and binary hashes.
-5. Publish the verified source with the MIT licence and reproducible instructions.
+5. Completed: publish the verified source with the MIT licence and reproducible instructions.
 6. Record and publish the demonstration to YouTube, sign in to Devpost, complete the
    entry, and retain the final submission confirmation.
 
