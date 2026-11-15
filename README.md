@@ -31,6 +31,8 @@ Recorded on 16 November 2026:
 | Exported regression | Five paired replays passed; deliberately regressed candidate rejected |
 | Evidence check | Captures rechecked from raw observations and matching build identities |
 
+Watch the [1 minute 40 second native demo](https://www.youtube.com/watch?v=DzAZkTCPCOo).
+
 Get the [source and evidence release](https://github.com/Whyme-Labs/deadline-lab/releases/tag/v0.6.0)
 and follow the [QNX codelab](docs/qnx-codelab.md). Earlier results under `evidence/`
 and the versioned progress documents are historical checkpoints.
