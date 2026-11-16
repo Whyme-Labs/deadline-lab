@@ -1,8 +1,8 @@
 # QNX Global Hackathon entry
 
-Status on 16 November 2026. Native validation and the public repository are ready.
-The public YouTube demo is published. The Devpost draft exists; a final
-submission receipt has not yet been recorded.
+Submitted on 16 November 2026 at 12:34 Malaysia time. Devpost confirmed
+"Project submitted!" and the entry page lists QNX Global Hackathon under
+"Submitted to". This is a submission receipt, not a judging result or award.
 
 ## Category and required materials
 
@@ -17,7 +17,8 @@ public YouTube demo under three minutes. The codelab bonus uses the tutorial URL
 - Build/run guide and codelab: [qnx-codelab.md](qnx-codelab.md).
 - Version: 0.6.0, with source and raw native evidence in the GitHub release.
 - Demo: https://www.youtube.com/watch?v=DzAZkTCPCOo, public, 1 minute 40 seconds.
-- Devpost: project details saved; final submission still pending.
+- Submitted entry: https://devpost.com/software/deadline-lab
+- Devpost submission ID: `1306431`.
 
 ## What was built
 
